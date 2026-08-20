@@ -1,48 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Prep Desk — MBA Study Companion</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prep Desk — MBA Study Companion</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          paper: '#FBF7EE',
-          card: '#FFFDF8',
-          ink: '#1E2749',
-          ink2: '#4A5270',
-          marigold: '#E8A33D',
-          marigoldDark: '#C9832A',
-          sage: '#7C9885',
-          sageDark: '#5F7A67',
-          rose: '#D96C6C',
-          line: '#E7DFCC',
-        },
-        fontFamily: {
-          display: ['"Fraunces"', 'serif'],
-          body: ['"Inter"', 'sans-serif'],
-          mono: ['"JetBrains Mono"', 'monospace'],
-        },
-        boxShadow: {
-          card: '0 2px 0 rgba(30,39,73,0.06), 0 10px 24px -12px rgba(30,39,73,0.18)',
-          pin: '0 6px 14px -6px rgba(30,39,73,0.35)',
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: '#FBF7EE',
+            card: '#FFFDF8',
+            ink: '#1E2749',
+            ink2: '#4A5270',
+            marigold: '#E8A33D',
+            marigoldDark: '#C9832A',
+            sage: '#7C9885',
+            sageDark: '#5F7A67',
+            rose: '#D96C6C',
+            line: '#E7DFCC',
+          },
+          fontFamily: {
+            display: ['"Fraunces"', 'serif'],
+            body: ['"Inter"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          boxShadow: {
+            card: '0 2px 0 rgba(30,39,73,0.06), 0 10px 24px -12px rgba(30,39,73,0.18)',
+            pin: '0 6px 14px -6px rgba(30,39,73,0.35)',
+          }
         }
       }
     }
-  }
-</script>
+  </script>
 
-<style>
-  /* ====== CONFIG: change this to your real email so Help Desk messages reach you ====== */
+  <style>
+    /* ====== CONFIG: change this to your real email so Help Desk messages reach you ====== */
   </style>
 </head>
 
@@ -55,30 +58,36 @@
   </div>
 
   <!-- ============ SCREEN 1: AUTH ============ -->
-  <section id="screen-auth" class="screen active min-h-screen w-full flex items-center justify-center px-5 py-10">
+  <section id="screen-auth" class="screen active min-h-screen w-full items-center justify-center px-5 py-10">
     <div class="w-full max-w-sm fade-up">
       <div class="text-center mb-7">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ink text-paper text-xs font-mono tracking-wide mb-4">CASE 01 / PREP DESK</div>
+        <div
+          class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ink text-paper text-xs font-mono tracking-wide mb-4">
+          CASE 01 / PREP DESK</div>
         <h1 class="font-display text-4xl font-semibold leading-tight">Prep Desk</h1>
         <p class="text-ink2 mt-2 text-sm">A quiet corner to sharpen your HR &amp; Marketing game.</p>
       </div>
 
       <div class="index-card rounded-2xl p-6">
         <div class="flex mb-6 rounded-full bg-paper p-1 border border-line">
-          <button id="tab-login" class="flex-1 py-2 rounded-full text-sm font-semibold transition bg-ink text-paper">Log in</button>
-          <button id="tab-signup" class="flex-1 py-2 rounded-full text-sm font-semibold transition text-ink2">Sign up</button>
+          <button id="tab-login" class="flex-1 py-2 rounded-full text-sm font-semibold transition bg-ink text-paper">Log
+            in</button>
+          <button id="tab-signup" class="flex-1 py-2 rounded-full text-sm font-semibold transition text-ink2">Sign
+            up</button>
         </div>
 
         <form id="form-auth" class="space-y-4">
           <div>
             <label class="text-xs font-semibold text-ink2 uppercase tracking-wide">Username</label>
             <input id="auth-username" type="text" required autocomplete="username"
-              class="mt-1 w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-sm focus:border-marigoldDark transition" placeholder="e.g. priya.hr" />
+              class="mt-1 w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-sm focus:border-marigoldDark transition"
+              placeholder="e.g. priya.hr" />
           </div>
           <div>
             <label class="text-xs font-semibold text-ink2 uppercase tracking-wide">Password</label>
             <input id="auth-password" type="password" required autocomplete="current-password"
-              class="mt-1 w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-sm focus:border-marigoldDark transition" placeholder="••••••••" />
+              class="mt-1 w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-sm focus:border-marigoldDark transition"
+              placeholder="••••••••" />
           </div>
           <p id="auth-error" class="text-rose text-xs font-medium hidden"></p>
           <button type="submit" id="auth-submit"
@@ -99,8 +108,10 @@
       <p class="text-ink2 text-sm mb-6">This is the name that'll greet you every time you walk in.</p>
       <form id="form-name" class="index-card rounded-2xl p-6 space-y-4">
         <input id="name-input" type="text" required
-          class="w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-sm text-center focus:border-marigoldDark transition" placeholder="Your name" />
-        <button type="submit" class="w-full py-2.5 rounded-lg bg-ink hover:bg-[#151b36] text-paper font-semibold text-sm transition shadow-pin">
+          class="w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-sm text-center focus:border-marigoldDark transition"
+          placeholder="Your name" />
+        <button type="submit"
+          class="w-full py-2.5 rounded-lg bg-ink hover:bg-[#151b36] text-paper font-semibold text-sm transition shadow-pin">
           Continue
         </button>
       </form>
@@ -123,7 +134,9 @@
     <header class="border-b border-line bg-card/70 backdrop-blur sticky top-0 z-20">
       <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-ink text-paper flex items-center justify-center font-display font-semibold text-sm">P</div>
+          <div
+            class="w-8 h-8 rounded-lg bg-ink text-paper flex items-center justify-center font-display font-semibold text-sm">
+            P</div>
           <span class="font-display font-semibold text-lg">Prep Desk</span>
         </div>
         <div class="flex items-center gap-3">
@@ -143,7 +156,8 @@
       <div class="fade-up">
         <p class="font-mono text-xs tracking-[0.25em] text-marigoldDark uppercase mb-2">Today's session</p>
         <h1 id="dash-hello" class="font-display text-3xl sm:text-4xl font-semibold">Hello, Champ</h1>
-        <p class="text-ink2 mt-2 text-sm max-w-lg">Case studies, HR &amp; Marketing essentials, and a nudge of motivation — all in one desk.</p>
+        <p class="text-ink2 mt-2 text-sm max-w-lg">Case studies, HR &amp; Marketing essentials, and a nudge of
+          motivation — all in one desk.</p>
       </div>
 
       <!-- Streak card (mobile) -->
@@ -157,13 +171,25 @@
 
       <!-- Quote of the day -->
       <div class="index-card tilt-1 rounded-2xl p-6 sm:p-7">
+        <div class="bubbles" aria-hidden="true">
+          <span style="--x:6%;  --size:9px;  --dur:11s; --delay:0s;"></span>
+          <span style="--x:17%; --size:14px; --dur:14s; --delay:2.5s;"></span>
+          <span style="--x:28%; --size:7px;  --dur:9s;  --delay:1.2s;"></span>
+          <span style="--x:39%; --size:11px; --dur:13s; --delay:4s;"></span>
+          <span style="--x:51%; --size:6px;  --dur:8.5s;--delay:0.6s;"></span>
+          <span style="--x:62%; --size:16px; --dur:16s; --delay:3.2s;"></span>
+          <span style="--x:71%; --size:8px;  --dur:10s; --delay:5.5s;"></span>
+          <span style="--x:83%; --size:12px; --dur:12.5s;--delay:1.8s;"></span>
+          <span style="--x:92%; --size:6px;  --dur:9.5s;--delay:6.2s;"></span>
+        </div>
         <div class="flex items-start justify-between gap-4 flex-wrap">
           <div class="flex-1 min-w-[200px]">
             <p class="font-mono text-[11px] tracking-[0.25em] text-sage uppercase mb-3">Motivation, on file</p>
             <p id="quote-text" class="font-display text-xl sm:text-2xl leading-snug italic">"Loading a thought…"</p>
             <p id="quote-author" class="text-ink2 text-sm mt-3">—</p>
           </div>
-          <button id="btn-new-quote" class="shrink-0 px-4 py-2 rounded-full bg-sage hover:bg-sageDark text-white text-xs font-semibold transition">
+          <button id="btn-new-quote"
+            class="shrink-0 px-4 py-2 rounded-full bg-sage hover:bg-sageDark text-white text-xs font-semibold transition">
             New quote
           </button>
         </div>
@@ -173,7 +199,8 @@
           <form id="form-quote" class="flex flex-col sm:flex-row gap-2">
             <input id="quote-input" type="text" placeholder="Type a line that keeps you going…" required
               class="flex-1 rounded-lg border border-line bg-paper px-3.5 py-2 text-sm focus:border-marigoldDark transition" />
-            <button type="submit" class="px-4 py-2 rounded-lg bg-ink text-paper text-sm font-semibold hover:bg-[#151b36] transition">Save</button>
+            <button type="submit"
+              class="px-4 py-2 rounded-lg bg-ink text-paper text-sm font-semibold hover:bg-[#151b36] transition">Save</button>
           </form>
         </div>
       </div>
@@ -193,15 +220,19 @@
               <div class="flip-face index-card tilt-2 rounded-2xl p-5 w-full h-full flex flex-col">
                 <span class="text-2xl">🗂️</span>
                 <h3 class="font-display font-semibold text-lg mt-2">Case Study Practice</h3>
-                <p class="text-ink2 text-sm mt-1 flex-1">Pull a random business scenario and think it through, MBA-style.</p>
-                <button class="btn-flip-open self-start text-xs font-semibold text-marigoldDark hover:text-marigold" data-target="flip-case">Draw a case →</button>
+                <p class="text-ink2 text-sm mt-1 flex-1">Pull a random business scenario and think it through,
+                  MBA-style.</p>
+                <button class="btn-flip-open self-start text-xs font-semibold text-marigoldDark hover:text-marigold"
+                  data-target="flip-case">Draw a case →</button>
               </div>
               <div class="flip-face flip-back index-card rounded-2xl p-5 w-full h-full flex flex-col overflow-y-auto">
                 <p class="font-mono text-[10px] text-sage uppercase tracking-wider mb-1">Scenario</p>
                 <p id="case-text" class="text-sm leading-relaxed flex-1">—</p>
                 <div class="flex items-center justify-between mt-3">
-                  <button class="btn-new-case text-xs font-semibold text-marigoldDark hover:text-marigold">Another one</button>
-                  <button class="btn-flip-close text-xs text-ink2 hover:text-ink" data-target="flip-case">Close ✕</button>
+                  <button class="btn-new-case text-xs font-semibold text-marigoldDark hover:text-marigold">Another
+                    one</button>
+                  <button class="btn-flip-close text-xs text-ink2 hover:text-ink" data-target="flip-case">Close
+                    ✕</button>
                 </div>
               </div>
             </div>
@@ -214,14 +245,17 @@
                 <span class="text-2xl">📣</span>
                 <h3 class="font-display font-semibold text-lg mt-2">Marketing Toolkit</h3>
                 <p class="text-ink2 text-sm mt-1 flex-1">Core frameworks — the ones that show up in every interview.</p>
-                <button class="btn-flip-open self-start text-xs font-semibold text-marigoldDark hover:text-marigold" data-target="flip-marketing">Shuffle frameworks →</button>
+                <button class="btn-flip-open self-start text-xs font-semibold text-marigoldDark hover:text-marigold"
+                  data-target="flip-marketing">Shuffle frameworks →</button>
               </div>
               <div class="flip-face flip-back index-card rounded-2xl p-5 w-full h-full flex flex-col overflow-y-auto">
                 <p id="marketing-title" class="font-display font-semibold text-base mb-1">—</p>
                 <p id="marketing-text" class="text-sm leading-relaxed flex-1 text-ink2">—</p>
                 <div class="flex items-center justify-between mt-3">
-                  <button class="btn-new-marketing text-xs font-semibold text-marigoldDark hover:text-marigold">Next framework</button>
-                  <button class="btn-flip-close text-xs text-ink2 hover:text-ink" data-target="flip-marketing">Close ✕</button>
+                  <button class="btn-new-marketing text-xs font-semibold text-marigoldDark hover:text-marigold">Next
+                    framework</button>
+                  <button class="btn-flip-close text-xs text-ink2 hover:text-ink" data-target="flip-marketing">Close
+                    ✕</button>
                 </div>
               </div>
             </div>
@@ -234,13 +268,15 @@
                 <span class="text-2xl">🧑‍💼</span>
                 <h3 class="font-display font-semibold text-lg mt-2">HR Toolkit</h3>
                 <p class="text-ink2 text-sm mt-1 flex-1">Models and terms from the people side of the business.</p>
-                <button class="btn-flip-open self-start text-xs font-semibold text-marigoldDark hover:text-marigold" data-target="flip-hr">Shuffle topics →</button>
+                <button class="btn-flip-open self-start text-xs font-semibold text-marigoldDark hover:text-marigold"
+                  data-target="flip-hr">Shuffle topics →</button>
               </div>
               <div class="flip-face flip-back index-card rounded-2xl p-5 w-full h-full flex flex-col overflow-y-auto">
                 <p id="hr-title" class="font-display font-semibold text-base mb-1">—</p>
                 <p id="hr-text" class="text-sm leading-relaxed flex-1 text-ink2">—</p>
                 <div class="flex items-center justify-between mt-3">
-                  <button class="btn-new-hr text-xs font-semibold text-marigoldDark hover:text-marigold">Next topic</button>
+                  <button class="btn-new-hr text-xs font-semibold text-marigoldDark hover:text-marigold">Next
+                    topic</button>
                   <button class="btn-flip-close text-xs text-ink2 hover:text-ink" data-target="flip-hr">Close ✕</button>
                 </div>
               </div>
@@ -256,11 +292,13 @@
           <span class="text-xl">🛎️</span>
           <h2 class="font-display text-xl font-semibold">Help Desk</h2>
         </div>
-        <p class="text-ink2 text-sm mb-5">Something missing, broken, or an idea for a new tool? Send it straight over.</p>
+        <p class="text-ink2 text-sm mb-5">Something missing, broken, or an idea for a new tool? Send it straight over.
+        </p>
         <form id="form-helpdesk" class="space-y-3">
           <textarea id="helpdesk-msg" required rows="3" placeholder="Tell me what you'd like to see…"
             class="w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-sm resize-none focus:border-marigoldDark transition"></textarea>
-          <button type="submit" class="px-5 py-2.5 rounded-lg bg-rose hover:bg-[#c25555] text-white text-sm font-semibold transition">
+          <button type="submit"
+            class="px-5 py-2.5 rounded-lg bg-rose hover:bg-[#c25555] text-white text-sm font-semibold transition">
             Send suggestion
           </button>
           <span id="helpdesk-status" class="text-xs text-sage font-semibold ml-2 hidden">Opening your mail app…</span>
@@ -273,4 +311,5 @@
   <script src="script.js" defer></script>
 
 </body>
+
 </html>

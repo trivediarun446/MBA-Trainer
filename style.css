@@ -9,8 +9,8 @@
     background-size: 22px 22px;
   }
 
-  .screen { display: none; }
-  .screen.active { display: flex; }
+.screen { display: none !important; }
+.screen.active { display: flex !important; }
 
   .index-card {
     background: #FFFDF8;
@@ -27,11 +27,14 @@
     background: #E7DFCC;
     box-shadow: 22px 0 0 #E7DFCC;
   }
-  .tilt-1 { transform: rotate(-1.2deg); }
+  /* .tilt-1 { transform: rotate(-1.2deg); }
   .tilt-2 { transform: rotate(0.8deg); }
   .tilt-3 { transform: rotate(-0.4deg); }
-  .tilt-0:hover, .tilt-1:hover, .tilt-2:hover, .tilt-3:hover { transform: rotate(0deg) translateY(-3px); }
-  .index-card { transition: transform .25s ease, box-shadow .25s ease; }
+  /* .tilt-0:hover, .tilt-1:hover, .tilt-2:hover, .tilt-3:hover { transform: rotate(0deg) translateY(-3px); } */
+  /* cards ab seedhe rehte hain — sirf halka sa lift hover par */
+.tilt-0, .tilt-1, .tilt-2, .tilt-3 { transform: none; }
+.tilt-0:hover, .tilt-1:hover, .tilt-2:hover, .tilt-3:hover { transform: translateY(-3px); }
+  .index-card { transition: transform .25s ease, box-shadow .25s ease; } 
 
   .fade-up { animation: fadeUp .6s ease both; }
   @keyframes fadeUp { from { opacity:0; transform: translateY(14px);} to {opacity:1; transform: translateY(0);} }
@@ -99,3 +102,44 @@
   @media (prefers-reduced-motion: reduce) {
     * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
   }
+/* ---- Water bubbles (sirf quote card ke liye) ---- */
+.bubble-card { position: relative; overflow: hidden; }
+.bubble-card > *:not(.bubbles) { position: relative; z-index: 1; }
+
+.bubbles {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.bubbles span {
+  --rise: 420px;
+  position: absolute;
+  bottom: -30px;
+  left: var(--x);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 28%,
+      rgba(255,255,255,0.95) 0%,
+      rgba(255,255,255,0.45) 18%,
+      rgba(124,152,133,0.22) 48%,
+      rgba(124,152,133,0.10) 72%);
+  border: 1px solid rgba(124,152,133,0.32);
+  box-shadow:
+    inset -2px -3px 6px rgba(95,122,103,0.18),
+    inset 2px 3px 5px rgba(255,255,255,0.55),
+    0 0 8px rgba(124,152,133,0.14);
+  opacity: 0;
+  animation: bubbleRise var(--dur) ease-in var(--delay) infinite;
+}
+
+@keyframes bubbleRise {
+  0%   { transform: translate(0, 0) scale(0.8);            opacity: 0; }
+  8%   {                                                    opacity: 0.9; }
+  30%  { transform: translate(7px, calc(var(--rise) * -0.3)) scale(1); }
+  55%  { transform: translate(-7px, calc(var(--rise) * -0.55)) scale(1.04); }
+  80%  { transform: translate(5px, calc(var(--rise) * -0.8)) scale(1.08); opacity: 0.55; }
+  100% { transform: translate(0, calc(var(--rise) * -1)) scale(1.12);     opacity: 0; }
+}
