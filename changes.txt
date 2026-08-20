@@ -11,3 +11,10 @@ STAR Answer Builder — HR interview ke behavioral questions structured way mein
 Jargon Flashcards — HR + Marketing ke common terms (EBITDA, Blue Ocean, STP, Attrition Rate...) flip karke seekhne ke liye
 Case Timer — random HR/Marketing case prompt + 3-min countdown, jaise real case interviews hote hain Case Study Generator + Timer — ab Marketing / Finance / Ops categories mein filter kar sakte ho, har category ke 3-3 real-style case prompts hain, 3-min countdown ring ke saath
 SWOT / PESTEL Builder — toggle button se dono frameworks switch ho jate hain, fill-in-the-blank grid format 
+
+
+
+
+Ek naya issue :- 
+   maine apne ek account apne laptop se banaya to vo login ho gaya laptop mein , fir wahi account se maine 
+   phone mein login krne ki kosis ki to nhi hua to fir aisa yeh kyu hua hai aur yeh kaise thik hoga 
