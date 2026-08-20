@@ -1,19 +1,24 @@
 /* =====================================================================
    Prep Desk — app logic
-   Requires quotes.js to be loaded BEFORE this file.
+   Requires quotes.js to load first.
+
+   Features:
+     · no-repeat quote engine (shuffle bag)
+     · consistency heatmap (last 26 weeks)
+     · dark mode
+     · flashcard quiz with light spaced repetition
+     · backup / restore
+     · PWA service worker registration
    ===================================================================== */
 
-// Fallback bank — used only if quotes.js failed to load
 const DEFAULT_QUOTES = [
   { text: "Discipline is choosing between what you want now and what you want most.", author: "Unknown" },
   { text: "A goal without a plan is just a wish.", author: "Antoine de Saint-Exupéry" },
   { text: "Progress, not perfection.", author: "Unknown" }
 ];
 
-// The real bank (300 quotes) comes from quotes.js
 const QUOTE_BANK = (typeof MOTIVATION_QUOTES !== 'undefined' && MOTIVATION_QUOTES.length)
-  ? MOTIVATION_QUOTES
-  : DEFAULT_QUOTES;
+  ? MOTIVATION_QUOTES : DEFAULT_QUOTES;
 
 const CASE_STUDIES = [
   "A mid-size FMCG brand's market share has dropped 8% in two quarters after a competitor launched a cheaper private-label alternative. As the marketing lead, how do you diagnose the cause and respond — price, positioning, or something else?",
@@ -50,60 +55,99 @@ const HR_TOPICS = [
   { title: "Diversity, Equity & Inclusion (DEI)", text: "Diversity is representation, equity is fair access to opportunity, inclusion is whether people actually feel they belong once they're in the room." }
 ];
 
-// ---------------------------------------------------------------
-// Storage helpers
-// ---------------------------------------------------------------
+/* =====================================================================
+   Storage
+   ===================================================================== */
 const USERS_KEY = 'prepdesk_users';
 const SESSION_KEY = 'prepdesk_session';
+const THEME_KEY = 'prepdesk_theme';
 
 function loadUsers() {
-  try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; }
-  catch (e) { return {}; }
+  try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; } catch (e) { return {}; }
 }
-function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+function saveUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
 function getSession() { return localStorage.getItem(SESSION_KEY); }
-function setSession(username) { localStorage.setItem(SESSION_KEY, username); }
+function setSession(n) { localStorage.setItem(SESSION_KEY, n); }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
-
-function todayStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-}
-function daysBetween(a, b) {
-  const A = new Date(a), B = new Date(b);
-  return Math.round((B - A) / 86400000);
-}
 
 let users = loadUsers();
 let currentUsername = null;
-
 function currentUser() { return users[currentUsername]; }
 function persist() { saveUsers(users); }
 
-// ---------------------------------------------------------------
-// Screen switching
-// ---------------------------------------------------------------
+/* ---- dates (ISO, zero-padded, local time) ---- */
+function isoDate(d) {
+  d = d || new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+function dateFromIso(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function daysBetween(a, b) { return Math.round((dateFromIso(b) - dateFromIso(a)) / 86400000); }
+function shiftDays(d, n) { const c = new Date(d); c.setDate(c.getDate() + n); return c; }
+
+/* ---- make sure every user object has the newer fields ---- */
+function migrate(u) {
+  u.customQuotes = u.customQuotes || [];
+  u.quoteOrder = Array.isArray(u.quoteOrder) ? u.quoteOrder : [];
+  u.quotePointer = u.quotePointer || 0;
+  u.quoteRounds = u.quoteRounds || 0;
+  u.activity = u.activity || {};
+  u.cardStats = u.cardStats || {};
+  u.theme = u.theme || localStorage.getItem(THEME_KEY) || 'light';
+  u.milestones = u.milestones || [];
+  // older accounts stored dates unpadded — normalise them
+  if (u.lastVisit && u.lastVisit.length < 10) {
+    u.lastVisit = isoDate(new Date(u.lastVisit));
+  }
+  return u;
+}
+
+/* =====================================================================
+   Screens & toast
+   ===================================================================== */
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0, 0);
 }
 
-// ---------------------------------------------------------------
-// Toast / popup
-// ---------------------------------------------------------------
 let toastTimer = null;
 function showToast(message) {
   const toast = document.getElementById('toast');
   document.getElementById('toast-message').textContent = message;
   toast.classList.add('show');
   if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
 }
 
-// ---------------------------------------------------------------
-// Auth
-// ---------------------------------------------------------------
+/* =====================================================================
+   DARK MODE
+   ===================================================================== */
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_KEY, theme);
+  document.querySelectorAll('.theme-icon').forEach(el => {
+    el.textContent = theme === 'dark' ? '☀️' : '🌙';
+  });
+  const meta = document.getElementById('meta-theme-color');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#14161D' : '#FBF7EE');
+}
+
+function toggleTheme() {
+  const now = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  applyTheme(now);
+  const u = currentUser();
+  if (u) { u.theme = now; persist(); }
+  showToast(now === 'dark' ? 'Desk lamp on — dark mode.' : 'Back to paper — light mode.');
+}
+
+document.querySelectorAll('.btn-theme').forEach(b => b.addEventListener('click', toggleTheme));
+applyTheme(localStorage.getItem(THEME_KEY) || 'light');
+
+/* =====================================================================
+   AUTH
+   ===================================================================== */
 let mode = 'login';
 const tabLogin = document.getElementById('tab-login');
 const tabSignup = document.getElementById('tab-signup');
@@ -113,23 +157,16 @@ const authError = document.getElementById('auth-error');
 function setMode(m) {
   mode = m;
   authError.classList.add('hidden');
-  if (m === 'login') {
-    tabLogin.className = 'flex-1 py-2 rounded-full text-sm font-semibold transition bg-ink text-paper';
-    tabSignup.className = 'flex-1 py-2 rounded-full text-sm font-semibold transition text-ink2';
-    authSubmit.textContent = 'Log in';
-  } else {
-    tabSignup.className = 'flex-1 py-2 rounded-full text-sm font-semibold transition bg-ink text-paper';
-    tabLogin.className = 'flex-1 py-2 rounded-full text-sm font-semibold transition text-ink2';
-    authSubmit.textContent = 'Create account';
-  }
+  const on = 'flex-1 py-2 rounded-full text-sm font-semibold transition btn-ink';
+  const off = 'flex-1 py-2 rounded-full text-sm font-semibold transition text-ink2';
+  tabLogin.className = m === 'login' ? on : off;
+  tabSignup.className = m === 'login' ? off : on;
+  authSubmit.textContent = m === 'login' ? 'Log in' : 'Create account';
 }
 tabLogin.addEventListener('click', () => setMode('login'));
 tabSignup.addEventListener('click', () => setMode('signup'));
 
-function showAuthError(msg) {
-  authError.textContent = msg;
-  authError.classList.remove('hidden');
-}
+function showAuthError(msg) { authError.textContent = msg; authError.classList.remove('hidden'); }
 
 document.getElementById('form-auth').addEventListener('submit', (e) => {
   e.preventDefault();
@@ -138,15 +175,8 @@ document.getElementById('form-auth').addEventListener('submit', (e) => {
   if (!username || !password) return;
 
   if (mode === 'signup') {
-    if (users[username]) {
-      showAuthError('That username is already taken — try logging in instead.');
-      return;
-    }
-    users[username] = {
-      password, name: '', streak: 0, lastVisit: null,
-      customQuotes: [],
-      quoteOrder: [], quotePointer: 0, quoteRounds: 0
-    };
+    if (users[username]) { showAuthError('That username is already taken — try logging in instead.'); return; }
+    users[username] = migrate({ password, name: '', streak: 0, lastVisit: null });
     persist();
     showToast('Account created successfully!');
     document.getElementById('form-auth').reset();
@@ -165,11 +195,12 @@ document.getElementById('form-auth').addEventListener('submit', (e) => {
 
 function loginAs(username) {
   currentUsername = username;
+  users[username] = migrate(users[username]);
   setSession(username);
+  applyTheme(currentUser().theme);
   updateStreak();
   const u = currentUser();
-  if (!u.name) showScreen('screen-name');
-  else playWelcome(u.name);
+  if (!u.name) showScreen('screen-name'); else playWelcome(u.name);
 }
 
 document.getElementById('form-name').addEventListener('submit', (e) => {
@@ -184,37 +215,7 @@ document.getElementById('form-name').addEventListener('submit', (e) => {
 function playWelcome(name) {
   document.getElementById('welcome-text').textContent = `Hello, ${name}`;
   showScreen('screen-welcome');
-  setTimeout(() => enterDashboard(), 1400);
-}
-
-// ---------------------------------------------------------------
-// Streak logic
-// ---------------------------------------------------------------
-function updateStreak() {
-  const u = currentUser();
-  const today = todayStr();
-  if (!u.lastVisit) {
-    u.streak = 1;
-  } else if (u.lastVisit === today) {
-    // already counted today
-  } else {
-    const gap = daysBetween(u.lastVisit, today);
-    u.streak = (gap === 1) ? (u.streak || 0) + 1 : 1;
-  }
-  u.lastVisit = today;
-  persist();
-}
-
-// ---------------------------------------------------------------
-// Dashboard
-// ---------------------------------------------------------------
-function enterDashboard() {
-  const u = currentUser();
-  document.getElementById('dash-hello').textContent = `Hello, ${u.name}`;
-  document.getElementById('streak-count').textContent = u.streak || 0;
-  document.getElementById('streak-count-mobile').textContent = u.streak || 0;
-  nextQuote();
-  showScreen('screen-dashboard');
+  setTimeout(enterDashboard, 1400);
 }
 
 document.getElementById('btn-logout').addEventListener('click', () => {
@@ -226,20 +227,151 @@ document.getElementById('btn-logout').addEventListener('click', () => {
 });
 
 /* =====================================================================
-   QUOTE ENGINE — guaranteed no repeats
-   ---------------------------------------------------------------------
-   How it works (the "shuffle bag" method):
-     1. All quote indexes are shuffled once into a random order.
-     2. That order + a pointer are saved per user in localStorage.
-     3. Every "New quote" click moves the pointer forward by one.
-     4. A quote can therefore NEVER reappear until all 300 are used.
-     5. When the bag empties, it reshuffles for a fresh round and the
-        user is told. The first quote of the new round is never the same
-        as the last one of the old round.
-     6. Quotes you add yourself are slipped into the unseen part of the
-        bag, so they also obey the no-repeat rule.
+   STREAK + MILESTONES
    ===================================================================== */
+function updateStreak() {
+  const u = currentUser();
+  const today = isoDate();
+  if (!u.lastVisit) {
+    u.streak = 1;
+  } else if (u.lastVisit !== today) {
+    const gap = daysBetween(u.lastVisit, today);
+    u.streak = (gap === 1) ? (u.streak || 0) + 1 : 1;
+  }
+  u.lastVisit = today;
+  persist();
+}
 
+const MILESTONES = [3, 7, 14, 30, 50, 100, 200, 365];
+function checkMilestone() {
+  const u = currentUser();
+  const hit = MILESTONES.find(m => u.streak === m && !u.milestones.includes(m));
+  if (!hit) return;
+  u.milestones.push(hit);
+  persist();
+  setTimeout(() => {
+    confetti();
+    showToast(`${hit}-day streak. That is not luck — that is a habit.`);
+  }, 900);
+}
+
+function confetti() {
+  const colors = ['#E8A33D', '#7C9885', '#D96C6C', '#1E2749', '#C9832A'];
+  const wrap = document.createElement('div');
+  wrap.className = 'confetti';
+  for (let i = 0; i < 70; i++) {
+    const bit = document.createElement('i');
+    bit.style.left = Math.random() * 100 + '%';
+    bit.style.background = colors[Math.floor(Math.random() * colors.length)];
+    bit.style.setProperty('--d', (1.8 + Math.random() * 1.6) + 's');
+    bit.style.setProperty('--dl', (Math.random() * 0.7) + 's');
+    bit.style.opacity = 0.75 + Math.random() * 0.25;
+    wrap.appendChild(bit);
+  }
+  document.body.appendChild(wrap);
+  setTimeout(() => wrap.remove(), 4200);
+}
+
+/* =====================================================================
+   ACTIVITY LOG  (feeds the heatmap)
+   ===================================================================== */
+function logActivity(points) {
+  const u = currentUser();
+  if (!u) return;
+  const k = isoDate();
+  u.activity[k] = (u.activity[k] || 0) + (points || 1);
+  persist();
+  renderHeatmap();
+}
+
+function levelFor(count) {
+  if (!count) return 0;
+  if (count <= 2) return 1;
+  if (count <= 5) return 2;
+  if (count <= 10) return 3;
+  return 4;
+}
+
+const HM_WEEKS = 26;
+function renderHeatmap() {
+  const u = currentUser();
+  if (!u) return;
+  const grid = document.getElementById('hm-grid');
+  const months = document.getElementById('hm-months');
+  if (!grid) return;
+
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  // start on the Sunday of the week containing (today - 25 weeks)
+  let start = shiftDays(today, -(HM_WEEKS - 1) * 7);
+  start = shiftDays(start, -start.getDay());
+
+  grid.innerHTML = '';
+  months.innerHTML = '';
+  const todayIso = isoDate(today);
+  let activeDays = 0;
+  const isoSeq = [];
+
+  for (let w = 0; w < HM_WEEKS; w++) {
+    let label = '';
+    for (let d = 0; d < 7; d++) {
+      const day = shiftDays(start, w * 7 + d);
+      const cell = document.createElement('div');
+      cell.className = 'hm-cell';
+      if (day > today) {
+        cell.classList.add('is-blank');
+      } else {
+        const iso = isoDate(day);
+        const count = u.activity[iso] || 0;
+        if (count > 0) { activeDays++; isoSeq.push(iso); }
+        cell.dataset.level = levelFor(count);
+        cell.title = count
+          ? `${count} action${count > 1 ? 's' : ''} on ${iso}`
+          : `Nothing logged on ${iso}`;
+        if (iso === todayIso) cell.classList.add('is-today');
+      }
+      grid.appendChild(cell);
+      // month label on the column whose first day starts a new month
+      if (d === 0 && day.getDate() <= 7) {
+        label = day.toLocaleString('en', { month: 'short' });
+      }
+    }
+    const m = document.createElement('span');
+    m.textContent = label;
+    months.appendChild(m);
+  }
+
+  // longest run of consecutive active days
+  let best = 0, run = 0, prev = null;
+  isoSeq.sort();
+  isoSeq.forEach(iso => {
+    run = (prev && daysBetween(prev, iso) === 1) ? run + 1 : 1;
+    if (run > best) best = run;
+    prev = iso;
+  });
+
+  document.getElementById('hm-active').textContent = activeDays;
+  document.getElementById('hm-best').textContent = best;
+}
+
+/* =====================================================================
+   DASHBOARD
+   ===================================================================== */
+function enterDashboard() {
+  const u = currentUser();
+  document.getElementById('dash-hello').textContent = `Hello, ${u.name}`;
+  document.getElementById('streak-count').textContent = u.streak || 0;
+  document.getElementById('streak-count-mobile').textContent = u.streak || 0;
+  nextQuote();
+  logActivity(1);
+  renderHeatmap();
+  renderMastery();
+  showScreen('screen-dashboard');
+  checkMilestone();
+}
+
+/* =====================================================================
+   QUOTE ENGINE — shuffle bag, guaranteed no repeats
+   ===================================================================== */
 function shuffled(n) {
   const a = Array.from({ length: n }, (_, i) => i);
   for (let i = a.length - 1; i > 0; i--) {
@@ -254,15 +386,12 @@ function quotePool(u) {
   return QUOTE_BANK.concat(custom);
 }
 
-// Make sure the bag exists and covers every quote currently in the pool
 function syncBag(u, poolLen) {
-  if (!Array.isArray(u.quoteOrder) || u.quoteOrder.length === 0) {
+  if (!u.quoteOrder.length) {
     u.quoteOrder = shuffled(poolLen);
     u.quotePointer = 0;
-    u.quoteRounds = u.quoteRounds || 0;
     return;
   }
-  // pool grew (new custom quotes) → drop the new indexes into the unseen part
   if (poolLen > u.quoteOrder.length) {
     for (let i = u.quoteOrder.length; i < poolLen; i++) {
       const from = Math.max(u.quotePointer, 0);
@@ -270,7 +399,6 @@ function syncBag(u, poolLen) {
       u.quoteOrder.splice(pos, 0, i);
     }
   }
-  // pool shrank → strip out indexes that no longer exist
   if (poolLen < u.quoteOrder.length) {
     const before = u.quoteOrder.slice(0, u.quotePointer).filter(i => i < poolLen);
     const after = u.quoteOrder.slice(u.quotePointer).filter(i => i < poolLen);
@@ -279,25 +407,16 @@ function syncBag(u, poolLen) {
   }
 }
 
-function renderQuote(q, seen, total) {
-  document.getElementById('quote-text').textContent = `"${q.text}"`;
-  document.getElementById('quote-author').textContent = `— ${q.author}`;
-  const prog = document.getElementById('quote-progress');
-  if (prog) prog.textContent = ` · ${seen}/${total}`;
-}
-
-function nextQuote() {
+function nextQuote(silent) {
   const u = currentUser();
   if (!u) return;
   const pool = quotePool(u);
   syncBag(u, pool.length);
 
-  // bag empty → reshuffle for a new round
   if (u.quotePointer >= u.quoteOrder.length) {
-    const lastIdx = u.quoteOrder[u.quoteOrder.length - 1];
+    const last = u.quoteOrder[u.quoteOrder.length - 1];
     u.quoteOrder = shuffled(pool.length);
-    // don't let the new round open with the quote that just closed the old one
-    if (pool.length > 1 && u.quoteOrder[0] === lastIdx) {
+    if (pool.length > 1 && u.quoteOrder[0] === last) {
       [u.quoteOrder[0], u.quoteOrder[1]] = [u.quoteOrder[1], u.quoteOrder[0]];
     }
     u.quotePointer = 0;
@@ -308,12 +427,15 @@ function nextQuote() {
   const q = pool[u.quoteOrder[u.quotePointer]];
   u.quotePointer++;
   persist();
-  renderQuote(q, u.quotePointer, u.quoteOrder.length);
+
+  document.getElementById('quote-text').textContent = `"${q.text}"`;
+  document.getElementById('quote-author').textContent = `— ${q.author}`;
+  const prog = document.getElementById('quote-progress');
+  if (prog) prog.textContent = ` · ${u.quotePointer}/${u.quoteOrder.length}`;
 }
 
-document.getElementById('btn-new-quote').addEventListener('click', nextQuote);
+document.getElementById('btn-new-quote').addEventListener('click', () => { nextQuote(); logActivity(1); });
 
-// Add your own quote → shown immediately, and marked as already seen
 document.getElementById('form-quote').addEventListener('submit', (e) => {
   e.preventDefault();
   const input = document.getElementById('quote-input');
@@ -321,25 +443,24 @@ document.getElementById('form-quote').addEventListener('submit', (e) => {
   if (!text) return;
 
   const u = currentUser();
-  u.customQuotes = u.customQuotes || [];
   u.customQuotes.push(text);
   input.value = '';
 
   const pool = quotePool(u);
   const newIndex = pool.length - 1;
   syncBag(u, pool.length);
-  // pull the brand-new quote to the front of the unseen section, then show it
   u.quoteOrder = u.quoteOrder.filter(i => i !== newIndex);
   u.quoteOrder.splice(u.quotePointer, 0, newIndex);
   persist();
 
   nextQuote();
+  logActivity(1);
   showToast('Saved to your personal quote bank.');
 });
 
-// ---------------------------------------------------------------
-// Flip cards
-// ---------------------------------------------------------------
+/* =====================================================================
+   FLIP CARDS
+   ===================================================================== */
 document.querySelectorAll('.btn-flip-open').forEach(btn => {
   btn.addEventListener('click', () => {
     const id = btn.dataset.target;
@@ -347,12 +468,11 @@ document.querySelectorAll('.btn-flip-open').forEach(btn => {
     if (id === 'flip-case') showRandomCase();
     if (id === 'flip-marketing') showRandomMarketing();
     if (id === 'flip-hr') showRandomHr();
+    logActivity(1);
   });
 });
 document.querySelectorAll('.btn-flip-close').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.getElementById(btn.dataset.target).classList.remove('flipped');
-  });
+  btn.addEventListener('click', () => document.getElementById(btn.dataset.target).classList.remove('flipped'));
 });
 document.querySelectorAll('.btn-new-case').forEach(b => b.addEventListener('click', showRandomCase));
 document.querySelectorAll('.btn-new-marketing').forEach(b => b.addEventListener('click', showRandomMarketing));
@@ -382,9 +502,180 @@ function showRandomHr() {
   document.getElementById('hr-text').textContent = h.text;
 }
 
-// ---------------------------------------------------------------
-// Help desk
-// ---------------------------------------------------------------
+/* =====================================================================
+   FLASHCARD QUIZ
+   ---------------------------------------------------------------------
+   Light spaced repetition: a card you miss is pushed back into the
+   queue three positions later, so it returns before the round ends.
+   A card is "mastered" after two correct recalls in a row.
+   ===================================================================== */
+const ALL_CARDS = [
+  ...MARKETING_FRAMEWORKS.map((c, i) => ({ id: 'M' + i, deck: 'marketing', label: 'Marketing', ...c })),
+  ...HR_TOPICS.map((c, i) => ({ id: 'H' + i, deck: 'hr', label: 'HR', ...c }))
+];
+
+const MAX_REQUEUE = 2;   // a missed card returns at most twice per round
+let quizDeck = 'both', quizSize = 6;
+let queue = [], results = {}, currentCard = null, dealt = 0, totalToDeal = 0;
+
+const $ = id => document.getElementById(id);
+const overlay = $('quiz-overlay');
+
+function openQuizSetup() {
+  $('quiz-setup').classList.remove('hidden');
+  $('quiz-play').classList.add('hidden');
+  $('quiz-result').classList.add('hidden');
+  overlay.classList.add('open');
+}
+function closeQuiz() {
+  overlay.classList.remove('open');
+  renderMastery();
+  renderHeatmap();
+}
+
+$('btn-quiz-start').addEventListener('click', openQuizSetup);
+document.querySelectorAll('.btn-quiz-exit').forEach(b => b.addEventListener('click', closeQuiz));
+$('btn-quiz-repeat').addEventListener('click', openQuizSetup);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeQuiz(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.classList.contains('open')) closeQuiz(); });
+
+document.querySelectorAll('.deck-chip').forEach(c => c.addEventListener('click', () => {
+  document.querySelectorAll('.deck-chip').forEach(x => x.classList.remove('active'));
+  c.classList.add('active');
+  quizDeck = c.dataset.deck;
+}));
+document.querySelectorAll('.size-chip').forEach(c => c.addEventListener('click', () => {
+  document.querySelectorAll('.size-chip').forEach(x => x.classList.remove('active'));
+  c.classList.add('active');
+  quizSize = Number(c.dataset.size);
+}));
+
+$('btn-quiz-go').addEventListener('click', startQuiz);
+
+function startQuiz() {
+  const u = currentUser();
+  let pool = ALL_CARDS.filter(c => quizDeck === 'both' || c.deck === quizDeck);
+
+  // weakest cards first, then shuffle inside each tier
+  pool = pool
+    .map(c => ({ c, score: (u.cardStats[c.id] && u.cardStats[c.id].streak) || 0, r: Math.random() }))
+    .sort((a, b) => a.score - b.score || a.r - b.r)
+    .map(x => x.c);
+
+  const n = quizSize === 0 ? pool.length : Math.min(quizSize, pool.length);
+  // round copies carry a requeue counter, so a card can come back at
+  // most MAX_REQUEUE times and the round always ends
+  queue = pool.slice(0, n).map(c => Object.assign({}, c, { rq: 0 }));
+  // shuffle the chosen set so the order still feels fresh
+  for (let i = queue.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [queue[i], queue[j]] = [queue[j], queue[i]];
+  }
+
+  results = {};
+  dealt = 0;
+  totalToDeal = n;
+  $('quiz-setup').classList.add('hidden');
+  $('quiz-result').classList.add('hidden');
+  $('quiz-play').classList.remove('hidden');
+  nextCard();
+}
+
+function nextCard() {
+  if (!queue.length) return finishQuiz();
+  currentCard = queue.shift();
+  dealt++;
+
+  $('quiz-deck-tag').textContent = currentCard.label;
+  $('quiz-front').textContent = currentCard.title;
+  $('quiz-answer').textContent = currentCard.text;
+  $('quiz-back').classList.add('hidden');
+  $('quiz-grade').classList.add('hidden');
+  $('quiz-grade').classList.remove('grid');
+  $('btn-reveal').classList.remove('hidden');
+
+  const seen = Object.keys(results).length;
+  $('quiz-counter').textContent = `Card ${seen + 1} · ${totalToDeal} in this round`;
+  $('quiz-bar').style.width = Math.round((seen / totalToDeal) * 100) + '%';
+}
+
+$('btn-reveal').addEventListener('click', () => {
+  $('quiz-back').classList.remove('hidden');
+  $('btn-reveal').classList.add('hidden');
+  $('quiz-grade').classList.remove('hidden');
+  $('quiz-grade').classList.add('grid');
+});
+
+function grade(knew) {
+  const u = currentUser();
+  const id = currentCard.id;
+  const st = u.cardStats[id] || { seen: 0, correct: 0, streak: 0 };
+  st.seen++;
+  if (knew) { st.correct++; st.streak++; } else { st.streak = 0; }
+  u.cardStats[id] = st;
+  persist();
+
+  // record the FIRST answer for this card in this round
+  if (!(id in results)) results[id] = knew;
+
+  if (!knew && currentCard.rq < MAX_REQUEUE) {
+    // push it back so it returns before the round ends
+    currentCard.rq++;
+    const pos = Math.min(3, queue.length);
+    queue.splice(pos, 0, currentCard);
+  }
+
+  logActivity(1);
+  nextCard();
+}
+$('btn-knew').addEventListener('click', () => grade(true));
+$('btn-again').addEventListener('click', () => grade(false));
+
+function finishQuiz() {
+  const ids = Object.keys(results);
+  const got = ids.filter(id => results[id]).length;
+  const total = ids.length;
+  const pct = total ? got / total : 0;
+
+  $('quiz-play').classList.add('hidden');
+  $('quiz-result').classList.remove('hidden');
+  $('result-score').textContent = `${got} / ${total}`;
+
+  let emoji = '📘', line = "Every miss you just found is a mark you won't lose later.";
+  if (pct === 1) { emoji = '🏆'; line = 'Clean sweep. These are yours now.'; confetti(); }
+  else if (pct >= 0.75) { emoji = '🎯'; line = 'Strong recall. Just a couple of soft spots left.'; }
+  else if (pct >= 0.5) { emoji = '📈'; line = 'Halfway solid. Run the same deck again tomorrow.'; }
+
+  $('result-emoji').textContent = emoji;
+  $('result-line').textContent = line;
+
+  const weak = ids.filter(id => !results[id]).map(id => ALL_CARDS.find(c => c.id === id).title);
+  const box = $('result-weak');
+  const list = $('result-weak-list');
+  list.innerHTML = '';
+  if (weak.length) {
+    weak.forEach(t => { const li = document.createElement('li'); li.textContent = t; list.appendChild(li); });
+    box.classList.remove('hidden');
+  } else {
+    box.classList.add('hidden');
+  }
+
+  renderMastery();
+  renderHeatmap();
+}
+
+function renderMastery() {
+  const u = currentUser();
+  if (!u) return;
+  const mastered = ALL_CARDS.filter(c => (u.cardStats[c.id] || {}).streak >= 2).length;
+  const pct = Math.round((mastered / ALL_CARDS.length) * 100);
+  $('mastery-label').textContent = `${mastered} / ${ALL_CARDS.length} topics`;
+  $('mastery-bar').style.width = pct + '%';
+}
+
+/* =====================================================================
+   HELP DESK
+   ===================================================================== */
 document.getElementById('form-helpdesk').addEventListener('submit', (e) => {
   e.preventDefault();
   const msg = document.getElementById('helpdesk-msg').value.trim();
@@ -399,13 +690,82 @@ document.getElementById('form-helpdesk').addEventListener('submit', (e) => {
   document.getElementById('helpdesk-msg').value = '';
 });
 
-// ---------------------------------------------------------------
-// Boot
-// ---------------------------------------------------------------
+/* =====================================================================
+   BACKUP / RESTORE
+   ===================================================================== */
+document.getElementById('btn-backup').addEventListener('click', () => {
+  const u = currentUser();
+  const payload = {
+    app: 'prepdesk',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    username: currentUsername,
+    account: u
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `prepdesk-backup-${currentUsername}-${isoDate()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  document.getElementById('backup-note').textContent = `Backup saved on ${isoDate()}. Keep it in Drive or email it to yourself.`;
+  showToast('Backup downloaded.');
+});
+
+document.getElementById('btn-restore').addEventListener('click', () => document.getElementById('restore-file').click());
+
+document.getElementById('restore-file').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (data.app !== 'prepdesk' || !data.account) throw new Error('bad file');
+      const name = data.account.name || data.username;
+      const ok = confirm(
+        `Restore the backup for "${name}"?\n\n` +
+        `This will overwrite the data currently saved for ${currentUsername} in this browser — ` +
+        `streak, quotes, heatmap and flashcard progress.`
+      );
+      if (!ok) return;
+      const pw = users[currentUsername].password; // keep the password you log in with
+      users[currentUsername] = migrate(Object.assign({}, data.account, { password: pw }));
+      persist();
+      showToast('Backup restored.');
+      applyTheme(currentUser().theme);
+      enterDashboard();
+    } catch (err) {
+      showToast("That file doesn't look like a Prep Desk backup.");
+    } finally {
+      e.target.value = '';
+    }
+  };
+  reader.readAsText(file);
+});
+
+/* =====================================================================
+   PWA
+   ===================================================================== */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* offline mode unavailable */ });
+  });
+}
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
 (function init() {
+  setMode('login');
   const session = getSession();
   if (session && users[session]) {
     currentUsername = session;
+    users[session] = migrate(users[session]);
+    applyTheme(currentUser().theme);
     updateStreak();
     enterDashboard();
   } else {
