@@ -1,0 +1,13 @@
+sb se phla create account krne mein ek pop up aye ki account create successfully . 
+dusra sb se imp kam yeh ho ki create acount krte hi vaps feild clear ho jye aur log in mein a jaye . 
+jab log in complete ho jye to pop up aye log in successfully 
+abhi yeh dikk   t a rhi hai ki log in page dikh raha hai log in hone ke bad . yeh na ho login hote hi page hat jye 
+log in hone ke bad turnt us hi page mein enter name ka option aye yeh kam tb hi ho jab aap  ne naya account banaya ho 
+agar aap ka account phle se hi hai toh enter name na aye direct web site khule 
+
+yeh sare tools bhi dal de :
+   4Ps Marketing Mix Builder — kisi bhi brand pe Product/Price/Place/Promotion fill karo
+STAR Answer Builder — HR interview ke behavioral questions structured way mein practice karne ke liye
+Jargon Flashcards — HR + Marketing ke common terms (EBITDA, Blue Ocean, STP, Attrition Rate...) flip karke seekhne ke liye
+Case Timer — random HR/Marketing case prompt + 3-min countdown, jaise real case interviews hote hain Case Study Generator + Timer — ab Marketing / Finance / Ops categories mein filter kar sakte ho, har category ke 3-3 real-style case prompts hain, 3-min countdown ring ke saath
+SWOT / PESTEL Builder — toggle button se dono frameworks switch ho jate hain, fill-in-the-blank grid format 

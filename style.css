@@ -1,0 +1,101 @@
+:root { --help-desk-email: "your-email@example.com"; }
+
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #FBF7EE;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(30,39,73,0.06) 1px, transparent 0);
+    background-size: 22px 22px;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: flex; }
+
+  .index-card {
+    background: #FFFDF8;
+    border: 1px solid #E7DFCC;
+    box-shadow: 0 2px 0 rgba(30,39,73,0.06), 0 10px 24px -12px rgba(30,39,73,0.18);
+    position: relative;
+  }
+  .index-card::before {
+    content: '';
+    position: absolute;
+    top: 14px; left: 14px;
+    width: 8px; height: 8px;
+    border-radius: 999px;
+    background: #E7DFCC;
+    box-shadow: 22px 0 0 #E7DFCC;
+  }
+  .tilt-1 { transform: rotate(-1.2deg); }
+  .tilt-2 { transform: rotate(0.8deg); }
+  .tilt-3 { transform: rotate(-0.4deg); }
+  .tilt-0:hover, .tilt-1:hover, .tilt-2:hover, .tilt-3:hover { transform: rotate(0deg) translateY(-3px); }
+  .index-card { transition: transform .25s ease, box-shadow .25s ease; }
+
+  .fade-up { animation: fadeUp .6s ease both; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(14px);} to {opacity:1; transform: translateY(0);} }
+
+  .stagger > * { opacity:0; animation: fadeUp .55s ease forwards; }
+  .stagger > *:nth-child(1){animation-delay:.05s}
+  .stagger > *:nth-child(2){animation-delay:.12s}
+  .stagger > *:nth-child(3){animation-delay:.19s}
+  .stagger > *:nth-child(4){animation-delay:.26s}
+  .stagger > *:nth-child(5){animation-delay:.33s}
+  .stagger > *:nth-child(6){animation-delay:.40s}
+
+  .flame { display:inline-block; animation: flicker 1.6s ease-in-out infinite; }
+  @keyframes flicker {
+    0%,100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.08) rotate(-3deg); }
+  }
+
+  .flip-card { perspective: 1200px; }
+  .flip-inner {
+    position: relative; transform-style: preserve-3d;
+    transition: transform .6s cubic-bezier(.2,.8,.2,1);
+  }
+  .flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+  .flip-face { backface-visibility: hidden; }
+  .flip-back { position:absolute; inset:0; transform: rotateY(180deg); }
+
+  ::selection { background: #E8A33D; color: #1E2749; }
+
+  input:focus-visible, button:focus-visible, textarea:focus-visible {
+    outline: 2px solid #C9832A; outline-offset: 2px;
+  }
+
+  /* ---- Toast / popup ---- */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-16px);
+    background: #1E2749;
+    color: #FBF7EE;
+    padding: 12px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 10px 24px -8px rgba(30,39,73,0.45);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s ease, transform .3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast .toast-dot {
+    width: 7px; height: 7px; border-radius: 999px; background: #7C9885; flex-shrink: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
