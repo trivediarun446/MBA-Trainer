@@ -1,10 +1,11 @@
 /* =====================================================================
    Prep Desk — stylesheet
-   Every colour lives in a CSS variable so dark mode is a single
+   Every colour lives in a CSS variable, so dark mode is a single
    attribute swap on <html>.
    ===================================================================== */
 
 :root {
+  /* ↓↓↓ put your real email here so Help Desk messages reach you ↓↓↓ */
   --help-desk-email: "your-email@example.com";
 
   /* ---- Light theme (default) ---- */
@@ -78,6 +79,7 @@ body {
   transition: background-color .3s ease, color .3s ease;
 }
 
+/* !important beats the Tailwind CDN, which loads after this file */
 .screen { display: none !important; }
 .screen.active { display: flex !important; }
 
@@ -236,14 +238,16 @@ html[data-theme="dark"] .bubbles span {
 
 /* ---------- progress bar ---------- */
 .bar { height: 7px; border-radius: 999px; background: var(--hm-0); overflow: hidden; }
-.bar > i { display: block; height: 100%; border-radius: 999px;
+.bar > i {
+  display: block; height: 100%; border-radius: 999px;
   background: linear-gradient(90deg, var(--c-sage), var(--c-marigold));
-  transition: width .6s cubic-bezier(.2,.8,.2,1); }
+  transition: width .6s cubic-bezier(.2,.8,.2,1);
+}
 
 /* ---------- quiz overlay ---------- */
 .overlay {
   position: fixed; inset: 0; z-index: 150;
-  background: var(--c-paper);                                  /* fallback */
+  background: var(--c-paper);                                 /* fallback */
   background: color-mix(in srgb, var(--c-paper) 92%, transparent);
   backdrop-filter: blur(6px);
   display: none; align-items: center; justify-content: center; padding: 18px;

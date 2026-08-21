@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Prep Desk — MBA Study Companion</title>
+  <meta name="description" content="Case studies, HR & Marketing frameworks, flashcards and a daily streak." />
+  <meta name="theme-color" content="#FBF7EE" id="meta-theme-color" />
+  <link rel="icon" href="icon-192.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
@@ -12,6 +15,11 @@
     rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 
+  <!-- apply the saved theme before first paint, so there is no white flash -->
+  <script>
+    try { document.documentElement.setAttribute('data-theme', localStorage.getItem('prepdesk_theme') || 'light'); }
+    catch (e) { }
+  </script>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -19,16 +27,17 @@
       theme: {
         extend: {
           colors: {
-            paper: '#FBF7EE',
-            card: '#FFFDF8',
-            ink: '#1E2749',
-            ink2: '#4A5270',
-            marigold: '#E8A33D',
-            marigoldDark: '#C9832A',
-            sage: '#7C9885',
-            sageDark: '#5F7A67',
-            rose: '#D96C6C',
-            line: '#E7DFCC',
+            paper: 'var(--c-paper)',
+            card: 'var(--c-card)',
+            ink: 'var(--c-ink)',
+            ink2: 'var(--c-ink2)',
+            marigold: 'var(--c-marigold)',
+            marigoldDark: 'var(--c-marigold-dark)',
+            sage: 'var(--c-sage)',
+            sageDark: 'var(--c-sage-dark)',
+            rose: 'var(--c-rose)',
+            line: 'var(--c-line)',
+            onaccent: 'var(--c-onaccent)',
           },
           fontFamily: {
             display: ['"Fraunces"', 'serif'],
@@ -36,22 +45,17 @@
             mono: ['"JetBrains Mono"', 'monospace'],
           },
           boxShadow: {
-            card: '0 2px 0 rgba(30,39,73,0.06), 0 10px 24px -12px rgba(30,39,73,0.18)',
-            pin: '0 6px 14px -6px rgba(30,39,73,0.35)',
+            pin: '0 6px 14px -6px rgba(0,0,0,0.35)',
           }
         }
       }
     }
   </script>
-  
-  <style>
-    /* ====== CONFIG: change this to your real email so Help Desk messages reach you ====== */
-  </style>
 </head>
 
 <body class="min-h-screen text-ink">
 
-  <!-- ============ TOAST / POPUP ============ -->
+  <!-- ============ TOAST ============ -->
   <div id="toast" class="toast" role="status" aria-live="polite">
     <span class="toast-dot"></span>
     <span id="toast-message"></span>
@@ -61,8 +65,7 @@
   <section id="screen-auth" class="screen active min-h-screen w-full items-center justify-center px-5 py-10">
     <div class="w-full max-w-sm fade-up">
       <div class="text-center mb-7">
-        <div
-          class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ink text-paper text-xs font-mono tracking-wide mb-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full btn-ink text-xs font-mono tracking-wide mb-4">
           CASE 01 / PREP DESK</div>
         <h1 class="font-display text-4xl font-semibold leading-tight">Prep Desk</h1>
         <p class="text-ink2 mt-2 text-sm">A quiet corner to sharpen your HR &amp; Marketing game.</p>
@@ -70,33 +73,35 @@
 
       <div class="index-card rounded-2xl p-6">
         <div class="flex mb-6 rounded-full bg-paper p-1 border border-line">
-          <button id="tab-login" class="flex-1 py-2 rounded-full text-sm font-semibold transition bg-ink text-paper">Log
-            in</button>
-          <button id="tab-signup" class="flex-1 py-2 rounded-full text-sm font-semibold transition text-ink2">Sign
-            up</button>
+          <button id="tab-login" class="flex-1 py-2 rounded-full text-sm font-semibold transition btn-ink">Log in</button>
+          <button id="tab-signup" class="flex-1 py-2 rounded-full text-sm font-semibold transition text-ink2">Sign up</button>
         </div>
 
         <form id="form-auth" class="space-y-4">
           <div>
             <label class="text-xs font-semibold text-ink2 uppercase tracking-wide">Username</label>
             <input id="auth-username" type="text" required autocomplete="username"
-              class="mt-1 w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-sm focus:border-marigoldDark transition"
+              class="mt-1 w-full rounded-lg border border-line bg-paper text-ink px-3.5 py-2.5 text-sm focus:border-marigoldDark transition"
               placeholder="e.g. priya.hr" />
           </div>
           <div>
             <label class="text-xs font-semibold text-ink2 uppercase tracking-wide">Password</label>
             <input id="auth-password" type="password" required autocomplete="current-password"
-              class="mt-1 w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-sm focus:border-marigoldDark transition"
+              class="mt-1 w-full rounded-lg border border-line bg-paper text-ink px-3.5 py-2.5 text-sm focus:border-marigoldDark transition"
               placeholder="••••••••" />
           </div>
           <p id="auth-error" class="text-rose text-xs font-medium hidden"></p>
           <button type="submit" id="auth-submit"
-            class="w-full py-2.5 rounded-lg bg-marigold hover:bg-marigoldDark text-ink font-semibold text-sm transition shadow-pin">
+            class="w-full py-2.5 rounded-lg bg-marigold hover:bg-marigoldDark text-onaccent font-semibold text-sm transition shadow-pin">
             Log in
           </button>
         </form>
       </div>
-      <p class="text-center text-xs text-ink2 mt-5">Everything stays on this device — no data leaves your browser.</p>
+
+      <div class="flex items-center justify-center gap-3 mt-5">
+        <p class="text-xs text-ink2">Everything stays on this device.</p>
+        <button class="theme-toggle btn-theme" title="Switch theme" aria-label="Switch theme"><span class="theme-icon">🌙</span></button>
+      </div>
     </div>
   </section>
 
@@ -108,12 +113,9 @@
       <p class="text-ink2 text-sm mb-6">This is the name that'll greet you every time you walk in.</p>
       <form id="form-name" class="index-card rounded-2xl p-6 space-y-4">
         <input id="name-input" type="text" required
-          class="w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-sm text-center focus:border-marigoldDark transition"
+          class="w-full rounded-lg border border-line bg-paper text-ink px-3.5 py-2.5 text-sm text-center focus:border-marigoldDark transition"
           placeholder="Your name" />
-        <button type="submit"
-          class="w-full py-2.5 rounded-lg bg-ink hover:bg-[#151b36] text-paper font-semibold text-sm transition shadow-pin">
-          Continue
-        </button>
+        <button type="submit" class="w-full py-2.5 rounded-lg btn-ink font-semibold text-sm transition shadow-pin">Continue</button>
       </form>
     </div>
   </section>
@@ -122,7 +124,7 @@
   <section id="screen-welcome" class="screen min-h-screen w-full items-center justify-center px-5">
     <div class="text-center fade-up">
       <p class="font-mono text-xs tracking-[0.3em] text-marigoldDark uppercase mb-3">Welcome back</p>
-      <h1 id="welcome-text" class="font-display text-5xl sm:text-6xl font-semibold text-ink">Hello, there</h1>
+      <h1 id="welcome-text" class="font-display text-5xl sm:text-6xl font-semibold">Hello, there</h1>
       <p class="text-ink2 mt-4 text-sm">Opening your desk…</p>
     </div>
   </section>
@@ -130,21 +132,19 @@
   <!-- ============ SCREEN 4: DASHBOARD ============ -->
   <section id="screen-dashboard" class="screen min-h-screen w-full flex-col">
 
-    <!-- top bar -->
-    <header class="border-b border-line bg-card/70 backdrop-blur sticky top-0 z-20">
+    <header class="border-b border-line topbar backdrop-blur sticky top-0 z-20">
       <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <div
-            class="w-8 h-8 rounded-lg bg-ink text-paper flex items-center justify-center font-display font-semibold text-sm">
-            P</div>
+          <div class="w-8 h-8 rounded-lg btn-ink flex items-center justify-center font-display font-semibold text-sm">R</div>
           <span class="font-display font-semibold text-lg">Prep Desk</span>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3">
           <div class="hidden sm:flex items-center gap-1.5 bg-paper border border-line rounded-full px-3 py-1.5">
             <span class="flame text-base">🔥</span>
             <span id="streak-count" class="font-mono text-sm font-bold">0</span>
             <span class="text-xs text-ink2">day streak</span>
           </div>
+          <button class="theme-toggle btn-theme" title="Switch theme" aria-label="Switch theme"><span class="theme-icon">🌙</span></button>
           <button id="btn-logout" class="text-xs font-semibold text-ink2 hover:text-rose transition">Log out</button>
         </div>
       </div>
@@ -152,7 +152,7 @@
 
     <main class="max-w-5xl mx-auto w-full px-5 py-8 space-y-10">
 
-      <!-- Hero / greeting -->
+      <!-- greeting -->
       <div class="fade-up">
         <p class="font-mono text-xs tracking-[0.25em] text-marigoldDark uppercase mb-2">Today's session</p>
         <h1 id="dash-hello" class="font-display text-3xl sm:text-4xl font-semibold">Hello, Champ</h1>
@@ -160,7 +160,7 @@
           motivation — all in one desk.</p>
       </div>
 
-      <!-- Streak card (mobile) -->
+      <!-- streak (mobile) -->
       <div class="sm:hidden index-card rounded-2xl p-4 flex items-center gap-3">
         <span class="flame text-2xl">🔥</span>
         <div>
@@ -169,43 +169,79 @@
         </div>
       </div>
 
-      <!-- Quote of the day -->
-      <div class="index-card tilt-1 rounded-2xl p-6 sm:p-7">
+      <!-- ---------- QUOTE ---------- -->
+      <div class="index-card tilt-1 bubble-card rounded-2xl p-6 sm:p-7">
         <div class="bubbles" aria-hidden="true">
-          <span style="--x:6%;  --size:9px;  --dur:11s; --delay:0s;"></span>
-          <span style="--x:17%; --size:14px; --dur:14s; --delay:2.5s;"></span>
-          <span style="--x:28%; --size:7px;  --dur:9s;  --delay:1.2s;"></span>
-          <span style="--x:39%; --size:11px; --dur:13s; --delay:4s;"></span>
-          <span style="--x:51%; --size:6px;  --dur:8.5s;--delay:0.6s;"></span>
-          <span style="--x:62%; --size:16px; --dur:16s; --delay:3.2s;"></span>
-          <span style="--x:71%; --size:8px;  --dur:10s; --delay:5.5s;"></span>
-          <span style="--x:83%; --size:12px; --dur:12.5s;--delay:1.8s;"></span>
-          <span style="--x:92%; --size:6px;  --dur:9.5s;--delay:6.2s;"></span>
+          <span style="--x:6%;  --size:9px;  --dur:11s;   --delay:0s;"></span>
+          <span style="--x:17%; --size:14px; --dur:14s;   --delay:2.5s;"></span>
+          <span style="--x:28%; --size:7px;  --dur:9s;    --delay:1.2s;"></span>
+          <span style="--x:39%; --size:11px; --dur:13s;   --delay:4s;"></span>
+          <span style="--x:51%; --size:6px;  --dur:8.5s;  --delay:0.6s;"></span>
+          <span style="--x:62%; --size:16px; --dur:16s;   --delay:3.2s;"></span>
+          <span style="--x:71%; --size:8px;  --dur:10s;   --delay:5.5s;"></span>
+          <span style="--x:83%; --size:12px; --dur:12.5s; --delay:1.8s;"></span>
+          <span style="--x:92%; --size:6px;  --dur:9.5s;  --delay:6.2s;"></span>
         </div>
+
         <div class="flex items-start justify-between gap-4 flex-wrap">
           <div class="flex-1 min-w-[200px]">
-            <p class="font-mono text-[11px] tracking-[0.25em] text-sage uppercase mb-3">Motivation, on file</p>
+            <p class="font-mono text-[11px] tracking-[0.25em] text-sage uppercase mb-3">Motivation, on file<span id="quote-progress"></span></p>
             <p id="quote-text" class="font-display text-xl sm:text-2xl leading-snug italic">"Loading a thought…"</p>
             <p id="quote-author" class="text-ink2 text-sm mt-3">—</p>
           </div>
           <button id="btn-new-quote"
-            class="shrink-0 px-4 py-2 rounded-full bg-sage hover:bg-sageDark text-white text-xs font-semibold transition">
-            New quote
-          </button>
+            class="shrink-0 px-4 py-2 rounded-full bg-sage hover:bg-sageDark text-white text-xs font-semibold transition">New quote</button>
         </div>
 
         <div class="mt-6 pt-5 border-t border-dashed border-line">
           <p class="text-xs font-semibold text-ink2 uppercase tracking-wide mb-2">Add your own</p>
           <form id="form-quote" class="flex flex-col sm:flex-row gap-2">
             <input id="quote-input" type="text" placeholder="Type a line that keeps you going…" required
-              class="flex-1 rounded-lg border border-line bg-paper px-3.5 py-2 text-sm focus:border-marigoldDark transition" />
-            <button type="submit"
-              class="px-4 py-2 rounded-lg bg-ink text-paper text-sm font-semibold hover:bg-[#151b36] transition">Save</button>
+              class="flex-1 rounded-lg border border-line bg-paper text-ink px-3.5 py-2 text-sm focus:border-marigoldDark transition" />
+            <button type="submit" class="px-4 py-2 rounded-lg btn-ink text-sm font-semibold transition">Save</button>
           </form>
         </div>
       </div>
 
-      <!-- Tools -->
+      <!-- ---------- CONSISTENCY HEATMAP ---------- -->
+      <div class="index-card rounded-2xl p-6 sm:p-7">
+        <div class="flex items-start justify-between gap-4 flex-wrap mb-5">
+          <div>
+            <p class="font-mono text-[11px] tracking-[0.25em] text-sage uppercase mb-1">Consistency</p>
+            <h2 class="font-display text-xl font-semibold">Last 6 months at the desk</h2>
+          </div>
+          <div class="flex gap-5 text-right">
+            <div>
+              <p id="hm-active" class="font-mono text-xl font-bold leading-none">0</p>
+              <p class="text-[11px] text-ink2 mt-1">active days</p>
+            </div>
+            <div>
+              <p id="hm-best" class="font-mono text-xl font-bold leading-none">0</p>
+              <p class="text-[11px] text-ink2 mt-1">best streak</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="hm-scroll">
+          <div class="inline-block min-w-full">
+            <div id="hm-months" class="hm-months mb-1"></div>
+            <div id="hm-grid" class="hm-grid"></div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mt-4 flex-wrap gap-3">
+          <p class="text-xs text-ink2">Every visit, quote and flashcard darkens today's square.</p>
+          <div class="hm-legend">
+            <span class="text-[10px] text-ink2 mr-1">Less</span>
+            <i style="background:var(--hm-0)"></i><i style="background:var(--hm-1)"></i>
+            <i style="background:var(--hm-2)"></i><i style="background:var(--hm-3)"></i>
+            <i style="background:var(--hm-4)"></i>
+            <span class="text-[10px] text-ink2 ml-1">More</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- TOOLS ---------- -->
       <div>
         <div class="flex items-center gap-3 mb-4">
           <h2 class="font-display text-2xl font-semibold">Your prep tools</h2>
@@ -214,14 +250,12 @@
 
         <div class="grid sm:grid-cols-3 gap-5 stagger">
 
-          <!-- Case study tool -->
           <div class="flip-card h-64" id="flip-case">
             <div class="flip-inner w-full h-full relative">
               <div class="flip-face index-card tilt-2 rounded-2xl p-5 w-full h-full flex flex-col">
                 <span class="text-2xl">🗂️</span>
                 <h3 class="font-display font-semibold text-lg mt-2">Case Study Practice</h3>
-                <p class="text-ink2 text-sm mt-1 flex-1">Pull a random business scenario and think it through,
-                  MBA-style.</p>
+                <p class="text-ink2 text-sm mt-1 flex-1">Pull a random business scenario and think it through, MBA-style.</p>
                 <button class="btn-flip-open self-start text-xs font-semibold text-marigoldDark hover:text-marigold"
                   data-target="flip-case">Draw a case →</button>
               </div>
@@ -229,16 +263,13 @@
                 <p class="font-mono text-[10px] text-sage uppercase tracking-wider mb-1">Scenario</p>
                 <p id="case-text" class="text-sm leading-relaxed flex-1">—</p>
                 <div class="flex items-center justify-between mt-3">
-                  <button class="btn-new-case text-xs font-semibold text-marigoldDark hover:text-marigold">Another
-                    one</button>
-                  <button class="btn-flip-close text-xs text-ink2 hover:text-ink" data-target="flip-case">Close
-                    ✕</button>
+                  <button class="btn-new-case text-xs font-semibold text-marigoldDark hover:text-marigold">Another one</button>
+                  <button class="btn-flip-close text-xs text-ink2 hover:text-ink" data-target="flip-case">Close ✕</button>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Marketing toolkit -->
           <div class="flip-card h-64" id="flip-marketing">
             <div class="flip-inner w-full h-full relative">
               <div class="flip-face index-card tilt-0 rounded-2xl p-5 w-full h-full flex flex-col">
@@ -252,16 +283,13 @@
                 <p id="marketing-title" class="font-display font-semibold text-base mb-1">—</p>
                 <p id="marketing-text" class="text-sm leading-relaxed flex-1 text-ink2">—</p>
                 <div class="flex items-center justify-between mt-3">
-                  <button class="btn-new-marketing text-xs font-semibold text-marigoldDark hover:text-marigold">Next
-                    framework</button>
-                  <button class="btn-flip-close text-xs text-ink2 hover:text-ink" data-target="flip-marketing">Close
-                    ✕</button>
+                  <button class="btn-new-marketing text-xs font-semibold text-marigoldDark hover:text-marigold">Next framework</button>
+                  <button class="btn-flip-close text-xs text-ink2 hover:text-ink" data-target="flip-marketing">Close ✕</button>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- HR toolkit -->
           <div class="flip-card h-64" id="flip-hr">
             <div class="flip-inner w-full h-full relative">
               <div class="flip-face index-card tilt-3 rounded-2xl p-5 w-full h-full flex flex-col">
@@ -275,8 +303,7 @@
                 <p id="hr-title" class="font-display font-semibold text-base mb-1">—</p>
                 <p id="hr-text" class="text-sm leading-relaxed flex-1 text-ink2">—</p>
                 <div class="flex items-center justify-between mt-3">
-                  <button class="btn-new-hr text-xs font-semibold text-marigoldDark hover:text-marigold">Next
-                    topic</button>
+                  <button class="btn-new-hr text-xs font-semibold text-marigoldDark hover:text-marigold">Next topic</button>
                   <button class="btn-flip-close text-xs text-ink2 hover:text-ink" data-target="flip-hr">Close ✕</button>
                 </div>
               </div>
@@ -286,31 +313,123 @@
         </div>
       </div>
 
-      <!-- Help desk -->
+      <!-- ---------- FLASHCARD QUIZ ---------- -->
+      <div class="index-card rounded-2xl p-6 sm:p-7">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div class="flex-1 min-w-[220px]">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xl">🎴</span>
+              <h2 class="font-display text-xl font-semibold">Flashcard Quiz</h2>
+            </div>
+            <p class="text-ink2 text-sm">Recall the framework before you flip it. The ones you miss come back sooner.</p>
+          </div>
+          <button id="btn-quiz-start"
+            class="shrink-0 px-5 py-2.5 rounded-lg bg-marigold hover:bg-marigoldDark text-onaccent text-sm font-semibold transition shadow-pin">Start a round</button>
+        </div>
+
+        <div class="mt-6">
+          <div class="flex items-center justify-between text-xs mb-2">
+            <span class="font-semibold text-ink2 uppercase tracking-wide">Mastery</span>
+            <span id="mastery-label" class="font-mono text-ink2">0 / 16 topics</span>
+          </div>
+          <div class="bar"><i id="mastery-bar" style="width:0%"></i></div>
+          <p class="text-xs text-ink2 mt-2">A topic counts as mastered once you've recalled it correctly twice.</p>
+        </div>
+      </div>
+
+      <!-- ---------- HELP DESK ---------- -->
       <div class="index-card rounded-2xl p-6 sm:p-7 tilt-1" id="helpdesk">
         <div class="flex items-center gap-2 mb-1">
           <span class="text-xl">🛎️</span>
           <h2 class="font-display text-xl font-semibold">Help Desk</h2>
         </div>
-        <p class="text-ink2 text-sm mb-5">Something missing, broken, or an idea for a new tool? Send it straight over.
-        </p>
+        <p class="text-ink2 text-sm mb-5">Something missing, broken, or an idea for a new tool? Send it straight over.</p>
         <form id="form-helpdesk" class="space-y-3">
           <textarea id="helpdesk-msg" required rows="3" placeholder="Tell me what you'd like to see…"
-            class="w-full rounded-lg border border-line bg-paper px-3.5 py-2.5 text-sm resize-none focus:border-marigoldDark transition"></textarea>
-          <button type="submit"
-            class="px-5 py-2.5 rounded-lg bg-rose hover:bg-[#c25555] text-white text-sm font-semibold transition">
-            Send suggestion
-          </button>
+            class="w-full rounded-lg border border-line bg-paper text-ink px-3.5 py-2.5 text-sm resize-none focus:border-marigoldDark transition"></textarea>
+          <button type="submit" class="px-5 py-2.5 rounded-lg btn-rose text-sm font-semibold transition">Send suggestion</button>
           <span id="helpdesk-status" class="text-xs text-sage font-semibold ml-2 hidden">Opening your mail app…</span>
         </form>
       </div>
 
-      <!-- <footer class="text-center text-xs text-ink2 py-6">Built with care, one index card at a time.</footer> -->
     </main>
   </section>
+
+  <!-- ============ QUIZ OVERLAY ============ -->
+  <div id="quiz-overlay" class="overlay">
+    <div class="quiz-shell">
+
+      <div id="quiz-setup" class="index-card rounded-2xl p-6 sm:p-7 pop">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="font-mono text-[11px] tracking-[0.25em] text-sage uppercase mb-1">Flashcards</p>
+            <h2 class="font-display text-2xl font-semibold">Pick your deck</h2>
+          </div>
+          <button class="btn-quiz-exit text-ink2 hover:text-rose text-sm font-semibold">Close ✕</button>
+        </div>
+
+        <div class="flex flex-wrap gap-2 mt-5">
+          <button class="chip deck-chip active" data-deck="both">Both decks</button>
+          <button class="chip deck-chip" data-deck="marketing">Marketing only</button>
+          <button class="chip deck-chip" data-deck="hr">HR only</button>
+        </div>
+
+        <div class="flex flex-wrap gap-2 mt-3">
+          <button class="chip size-chip active" data-size="6">6 cards</button>
+          <button class="chip size-chip" data-size="10">10 cards</button>
+          <button class="chip size-chip" data-size="0">Everything</button>
+        </div>
+
+        <button id="btn-quiz-go"
+          class="w-full mt-6 py-3 rounded-lg bg-marigold hover:bg-marigoldDark text-onaccent font-semibold text-sm transition shadow-pin">Deal the cards</button>
+        <p class="text-xs text-ink2 mt-3">Tip: say the answer out loud before you reveal. Your head is a generous grader.</p>
+      </div>
+
+      <div id="quiz-play" class="index-card quiz-card rounded-2xl p-6 sm:p-7 hidden">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <p class="font-mono text-[11px] tracking-[0.2em] text-sage uppercase"><span id="quiz-counter">1 / 6</span></p>
+          <button class="btn-quiz-exit text-ink2 hover:text-rose text-xs font-semibold">End round ✕</button>
+        </div>
+        <div class="bar mb-6"><i id="quiz-bar" style="width:0%"></i></div>
+
+        <p id="quiz-deck-tag" class="font-mono text-[10px] uppercase tracking-wider text-marigoldDark mb-2">Marketing</p>
+        <h3 id="quiz-front" class="font-display text-2xl font-semibold leading-snug">—</h3>
+
+        <div id="quiz-back" class="hidden mt-4 pt-4 border-t border-dashed border-line">
+          <p id="quiz-answer" class="text-sm leading-relaxed text-ink2">—</p>
+        </div>
+
+        <div class="flex-1"></div>
+
+        <button id="btn-reveal" class="w-full mt-6 py-3 rounded-lg btn-ink font-semibold text-sm transition">Reveal answer</button>
+
+        <div id="quiz-grade" class="hidden grid-cols-2 gap-3 mt-6">
+          <button id="btn-again" class="py-3 rounded-lg border border-line bg-paper hover:border-rose text-sm font-semibold transition">Need review</button>
+          <button id="btn-knew" class="py-3 rounded-lg bg-sage hover:bg-sageDark text-white text-sm font-semibold transition">I knew it</button>
+        </div>
+      </div>
+
+      <div id="quiz-result" class="index-card rounded-2xl p-6 sm:p-7 hidden pop text-center">
+        <div id="result-emoji" class="text-4xl mb-2">🎯</div>
+        <h2 class="font-display text-2xl font-semibold">Round complete</h2>
+        <p id="result-score" class="font-mono text-3xl font-bold my-4">0 / 0</p>
+        <p id="result-line" class="text-ink2 text-sm mb-5">—</p>
+        <div id="result-weak" class="text-left text-sm text-ink2 mb-6 hidden">
+          <p class="font-semibold text-ink text-xs uppercase tracking-wide mb-2">Worth another look</p>
+          <ul id="result-weak-list" class="list-disc list-inside space-y-1"></ul>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <button class="btn-quiz-exit py-3 rounded-lg border border-line bg-paper hover:border-marigoldDark text-sm font-semibold transition">Back to desk</button>
+          <button id="btn-quiz-repeat"
+            class="py-3 rounded-lg bg-marigold hover:bg-marigoldDark text-onaccent text-sm font-semibold transition">Another round</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <script src="quotes.js" defer></script>
   <script src="script.js" defer></script>
-
 </body>
 
 </html>

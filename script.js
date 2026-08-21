@@ -1,16 +1,28 @@
 /* =====================================================================
    Prep Desk — app logic
-   Requires quotes.js to load first.
+   Load order:  quotes.js  →  script.js
 
-   Features:
-     · no-repeat quote engine (shuffle bag)
-     · consistency heatmap (last 26 weeks)
-     · dark mode
-     · flashcard quiz with light spaced repetition
-     · backup / restore
-     · PWA service worker registration
+   Features: no-repeat quote engine · consistency heatmap · dark mode ·
+             flashcard quiz with light spaced repetition · streak milestones
+
+   NOTE ON SAFETY
+   --------------
+   Every DOM lookup goes through el() / on() / setText() below. If an
+   element is ever missing from the HTML, that one line quietly does
+   nothing instead of throwing — which would otherwise stop the whole
+   script and leave you stuck on the welcome screen.
    ===================================================================== */
 
+/* ---------- safe DOM helpers ---------- */
+function el(id) { return document.getElementById(id); }
+function on(id, ev, fn) { const n = el(id); if (n) n.addEventListener(ev, fn); return n; }
+function setText(id, txt) { const n = el(id); if (n) n.textContent = txt; }
+function show(id) { const n = el(id); if (n) n.classList.remove('hidden'); }
+function hide(id) { const n = el(id); if (n) n.classList.add('hidden'); }
+
+/* =====================================================================
+   Content
+   ===================================================================== */
 const DEFAULT_QUOTES = [
   { text: "Discipline is choosing between what you want now and what you want most.", author: "Unknown" },
   { text: "A goal without a plan is just a wish.", author: "Antoine de Saint-Exupéry" },
@@ -65,17 +77,19 @@ const THEME_KEY = 'prepdesk_theme';
 function loadUsers() {
   try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; } catch (e) { return {}; }
 }
-function saveUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
-function getSession() { return localStorage.getItem(SESSION_KEY); }
-function setSession(n) { localStorage.setItem(SESSION_KEY, n); }
-function clearSession() { localStorage.removeItem(SESSION_KEY); }
+function saveUsers(u) {
+  try { localStorage.setItem(USERS_KEY, JSON.stringify(u)); } catch (e) {}
+}
+function getSession() { try { return localStorage.getItem(SESSION_KEY); } catch (e) { return null; } }
+function setSession(n) { try { localStorage.setItem(SESSION_KEY, n); } catch (e) {} }
+function clearSession() { try { localStorage.removeItem(SESSION_KEY); } catch (e) {} }
 
 let users = loadUsers();
 let currentUsername = null;
 function currentUser() { return users[currentUsername]; }
 function persist() { saveUsers(users); }
 
-/* ---- dates (ISO, zero-padded, local time) ---- */
+/* ---------- dates (ISO, zero-padded, local time) ---------- */
 function isoDate(d) {
   d = d || new Date();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -86,20 +100,21 @@ function dateFromIso(s) { const [y, m, d] = s.split('-').map(Number); return new
 function daysBetween(a, b) { return Math.round((dateFromIso(b) - dateFromIso(a)) / 86400000); }
 function shiftDays(d, n) { const c = new Date(d); c.setDate(c.getDate() + n); return c; }
 
-/* ---- make sure every user object has the newer fields ---- */
+/* ---------- make sure older accounts get the newer fields ---------- */
 function migrate(u) {
-  u.customQuotes = u.customQuotes || [];
+  u = u || {};
+  u.customQuotes = Array.isArray(u.customQuotes) ? u.customQuotes : [];
   u.quoteOrder = Array.isArray(u.quoteOrder) ? u.quoteOrder : [];
   u.quotePointer = u.quotePointer || 0;
   u.quoteRounds = u.quoteRounds || 0;
   u.activity = u.activity || {};
   u.cardStats = u.cardStats || {};
+  u.milestones = Array.isArray(u.milestones) ? u.milestones : [];
+  u.streak = u.streak || 0;
+  u.name = u.name || '';
   u.theme = u.theme || localStorage.getItem(THEME_KEY) || 'light';
-  u.milestones = u.milestones || [];
-  // older accounts stored dates unpadded — normalise them
-  if (u.lastVisit && u.lastVisit.length < 10) {
-    u.lastVisit = isoDate(new Date(u.lastVisit));
-  }
+  if (u.lastVisit && u.lastVisit.length < 10) u.lastVisit = isoDate(new Date(u.lastVisit));
+  if (!u.lastVisit) u.lastVisit = null;
   return u;
 }
 
@@ -108,14 +123,16 @@ function migrate(u) {
    ===================================================================== */
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  const n = el(id);
+  if (n) n.classList.add('active');
   window.scrollTo(0, 0);
 }
 
 let toastTimer = null;
 function showToast(message) {
-  const toast = document.getElementById('toast');
-  document.getElementById('toast-message').textContent = message;
+  const toast = el('toast');
+  if (!toast) return;
+  setText('toast-message', message);
   toast.classList.add('show');
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
@@ -126,11 +143,9 @@ function showToast(message) {
    ===================================================================== */
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem(THEME_KEY, theme);
-  document.querySelectorAll('.theme-icon').forEach(el => {
-    el.textContent = theme === 'dark' ? '☀️' : '🌙';
-  });
-  const meta = document.getElementById('meta-theme-color');
+  try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+  document.querySelectorAll('.theme-icon').forEach(n => { n.textContent = theme === 'dark' ? '☀️' : '🌙'; });
+  const meta = el('meta-theme-color');
   if (meta) meta.setAttribute('content', theme === 'dark' ? '#14161D' : '#FBF7EE');
 }
 
@@ -149,37 +164,38 @@ applyTheme(localStorage.getItem(THEME_KEY) || 'light');
    AUTH
    ===================================================================== */
 let mode = 'login';
-const tabLogin = document.getElementById('tab-login');
-const tabSignup = document.getElementById('tab-signup');
-const authSubmit = document.getElementById('auth-submit');
-const authError = document.getElementById('auth-error');
 
 function setMode(m) {
   mode = m;
-  authError.classList.add('hidden');
-  const on = 'flex-1 py-2 rounded-full text-sm font-semibold transition btn-ink';
+  hide('auth-error');
+  const on_ = 'flex-1 py-2 rounded-full text-sm font-semibold transition btn-ink';
   const off = 'flex-1 py-2 rounded-full text-sm font-semibold transition text-ink2';
-  tabLogin.className = m === 'login' ? on : off;
-  tabSignup.className = m === 'login' ? off : on;
-  authSubmit.textContent = m === 'login' ? 'Log in' : 'Create account';
+  const tl = el('tab-login'), ts = el('tab-signup'), sub = el('auth-submit');
+  if (tl) tl.className = m === 'login' ? on_ : off;
+  if (ts) ts.className = m === 'login' ? off : on_;
+  if (sub) sub.textContent = m === 'login' ? 'Log in' : 'Create account';
 }
-tabLogin.addEventListener('click', () => setMode('login'));
-tabSignup.addEventListener('click', () => setMode('signup'));
+on('tab-login', 'click', () => setMode('login'));
+on('tab-signup', 'click', () => setMode('signup'));
 
-function showAuthError(msg) { authError.textContent = msg; authError.classList.remove('hidden'); }
+function showAuthError(msg) {
+  setText('auth-error', msg);
+  show('auth-error');
+}
 
-document.getElementById('form-auth').addEventListener('submit', (e) => {
+on('form-auth', 'submit', (e) => {
   e.preventDefault();
-  const username = document.getElementById('auth-username').value.trim();
-  const password = document.getElementById('auth-password').value;
+  const uEl = el('auth-username'), pEl = el('auth-password');
+  const username = uEl ? uEl.value.trim() : '';
+  const password = pEl ? pEl.value : '';
   if (!username || !password) return;
 
   if (mode === 'signup') {
     if (users[username]) { showAuthError('That username is already taken — try logging in instead.'); return; }
-    users[username] = migrate({ password, name: '', streak: 0, lastVisit: null });
+    users[username] = migrate({ password });
     persist();
     showToast('Account created successfully!');
-    document.getElementById('form-auth').reset();
+    const f = el('form-auth'); if (f) f.reset();
     setMode('login');
   } else {
     const u = users[username];
@@ -188,7 +204,7 @@ document.getElementById('form-auth').addEventListener('submit', (e) => {
       return;
     }
     showToast('Login successful!');
-    document.getElementById('form-auth').reset();
+    const f = el('form-auth'); if (f) f.reset();
     setTimeout(() => loginAs(username), 700);
   }
 });
@@ -199,13 +215,14 @@ function loginAs(username) {
   setSession(username);
   applyTheme(currentUser().theme);
   updateStreak();
-  const u = currentUser();
-  if (!u.name) showScreen('screen-name'); else playWelcome(u.name);
+  if (!currentUser().name) showScreen('screen-name');
+  else playWelcome(currentUser().name);
 }
 
-document.getElementById('form-name').addEventListener('submit', (e) => {
+on('form-name', 'submit', (e) => {
   e.preventDefault();
-  const name = document.getElementById('name-input').value.trim();
+  const n = el('name-input');
+  const name = n ? n.value.trim() : '';
   if (!name) return;
   currentUser().name = name;
   persist();
@@ -213,15 +230,15 @@ document.getElementById('form-name').addEventListener('submit', (e) => {
 });
 
 function playWelcome(name) {
-  document.getElementById('welcome-text').textContent = `Hello, ${name}`;
+  setText('welcome-text', `Hello, ${name}`);
   showScreen('screen-welcome');
   setTimeout(enterDashboard, 1400);
 }
 
-document.getElementById('btn-logout').addEventListener('click', () => {
+on('btn-logout', 'click', () => {
   clearSession();
   currentUsername = null;
-  document.getElementById('form-auth').reset();
+  const f = el('form-auth'); if (f) f.reset();
   setMode('login');
   showScreen('screen-auth');
 });
@@ -231,10 +248,10 @@ document.getElementById('btn-logout').addEventListener('click', () => {
    ===================================================================== */
 function updateStreak() {
   const u = currentUser();
+  if (!u) return;
   const today = isoDate();
-  if (!u.lastVisit) {
-    u.streak = 1;
-  } else if (u.lastVisit !== today) {
+  if (!u.lastVisit) u.streak = 1;
+  else if (u.lastVisit !== today) {
     const gap = daysBetween(u.lastVisit, today);
     u.streak = (gap === 1) ? (u.streak || 0) + 1 : 1;
   }
@@ -245,6 +262,7 @@ function updateStreak() {
 const MILESTONES = [3, 7, 14, 30, 50, 100, 200, 365];
 function checkMilestone() {
   const u = currentUser();
+  if (!u) return;
   const hit = MILESTONES.find(m => u.streak === m && !u.milestones.includes(m));
   if (!hit) return;
   u.milestones.push(hit);
@@ -273,7 +291,7 @@ function confetti() {
 }
 
 /* =====================================================================
-   ACTIVITY LOG  (feeds the heatmap)
+   ACTIVITY LOG + HEATMAP
    ===================================================================== */
 function logActivity(points) {
   const u = currentUser();
@@ -295,13 +313,11 @@ function levelFor(count) {
 const HM_WEEKS = 26;
 function renderHeatmap() {
   const u = currentUser();
-  if (!u) return;
-  const grid = document.getElementById('hm-grid');
-  const months = document.getElementById('hm-months');
-  if (!grid) return;
+  const grid = el('hm-grid');
+  const months = el('hm-months');
+  if (!u || !grid || !months) return;
 
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  // start on the Sunday of the week containing (today - 25 weeks)
   let start = shiftDays(today, -(HM_WEEKS - 1) * 7);
   start = shiftDays(start, -start.getDay());
 
@@ -330,17 +346,13 @@ function renderHeatmap() {
         if (iso === todayIso) cell.classList.add('is-today');
       }
       grid.appendChild(cell);
-      // month label on the column whose first day starts a new month
-      if (d === 0 && day.getDate() <= 7) {
-        label = day.toLocaleString('en', { month: 'short' });
-      }
+      if (d === 0 && day.getDate() <= 7) label = day.toLocaleString('en', { month: 'short' });
     }
     const m = document.createElement('span');
     m.textContent = label;
     months.appendChild(m);
   }
 
-  // longest run of consecutive active days
   let best = 0, run = 0, prev = null;
   isoSeq.sort();
   isoSeq.forEach(iso => {
@@ -349,8 +361,8 @@ function renderHeatmap() {
     prev = iso;
   });
 
-  document.getElementById('hm-active').textContent = activeDays;
-  document.getElementById('hm-best').textContent = best;
+  setText('hm-active', activeDays);
+  setText('hm-best', best);
 }
 
 /* =====================================================================
@@ -358,9 +370,10 @@ function renderHeatmap() {
    ===================================================================== */
 function enterDashboard() {
   const u = currentUser();
-  document.getElementById('dash-hello').textContent = `Hello, ${u.name}`;
-  document.getElementById('streak-count').textContent = u.streak || 0;
-  document.getElementById('streak-count-mobile').textContent = u.streak || 0;
+  if (!u) { showScreen('screen-auth'); return; }
+  setText('dash-hello', `Hello, ${u.name}`);
+  setText('streak-count', u.streak || 0);
+  setText('streak-count-mobile', u.streak || 0);
   nextQuote();
   logActivity(1);
   renderHeatmap();
@@ -387,11 +400,7 @@ function quotePool(u) {
 }
 
 function syncBag(u, poolLen) {
-  if (!u.quoteOrder.length) {
-    u.quoteOrder = shuffled(poolLen);
-    u.quotePointer = 0;
-    return;
-  }
+  if (!u.quoteOrder.length) { u.quoteOrder = shuffled(poolLen); u.quotePointer = 0; return; }
   if (poolLen > u.quoteOrder.length) {
     for (let i = u.quoteOrder.length; i < poolLen; i++) {
       const from = Math.max(u.quotePointer, 0);
@@ -407,7 +416,7 @@ function syncBag(u, poolLen) {
   }
 }
 
-function nextQuote(silent) {
+function nextQuote() {
   const u = currentUser();
   if (!u) return;
   const pool = quotePool(u);
@@ -428,18 +437,17 @@ function nextQuote(silent) {
   u.quotePointer++;
   persist();
 
-  document.getElementById('quote-text').textContent = `"${q.text}"`;
-  document.getElementById('quote-author').textContent = `— ${q.author}`;
-  const prog = document.getElementById('quote-progress');
-  if (prog) prog.textContent = ` · ${u.quotePointer}/${u.quoteOrder.length}`;
+  setText('quote-text', `"${q.text}"`);
+  setText('quote-author', `— ${q.author}`);
+  setText('quote-progress', ` · ${u.quotePointer}/${u.quoteOrder.length}`);
 }
 
-document.getElementById('btn-new-quote').addEventListener('click', () => { nextQuote(); logActivity(1); });
+on('btn-new-quote', 'click', () => { nextQuote(); logActivity(1); });
 
-document.getElementById('form-quote').addEventListener('submit', (e) => {
+on('form-quote', 'submit', (e) => {
   e.preventDefault();
-  const input = document.getElementById('quote-input');
-  const text = input.value.trim();
+  const input = el('quote-input');
+  const text = input ? input.value.trim() : '';
   if (!text) return;
 
   const u = currentUser();
@@ -464,7 +472,8 @@ document.getElementById('form-quote').addEventListener('submit', (e) => {
 document.querySelectorAll('.btn-flip-open').forEach(btn => {
   btn.addEventListener('click', () => {
     const id = btn.dataset.target;
-    document.getElementById(id).classList.add('flipped');
+    const card = el(id);
+    if (card) card.classList.add('flipped');
     if (id === 'flip-case') showRandomCase();
     if (id === 'flip-marketing') showRandomMarketing();
     if (id === 'flip-hr') showRandomHr();
@@ -472,7 +481,10 @@ document.querySelectorAll('.btn-flip-open').forEach(btn => {
   });
 });
 document.querySelectorAll('.btn-flip-close').forEach(btn => {
-  btn.addEventListener('click', () => document.getElementById(btn.dataset.target).classList.remove('flipped'));
+  btn.addEventListener('click', () => {
+    const card = el(btn.dataset.target);
+    if (card) card.classList.remove('flipped');
+  });
 });
 document.querySelectorAll('.btn-new-case').forEach(b => b.addEventListener('click', showRandomCase));
 document.querySelectorAll('.btn-new-marketing').forEach(b => b.addEventListener('click', showRandomMarketing));
@@ -487,57 +499,57 @@ function pickDifferent(arr, lastIndex) {
 let lastCase = -1, lastMkt = -1, lastHr = -1;
 function showRandomCase() {
   lastCase = pickDifferent(CASE_STUDIES, lastCase);
-  document.getElementById('case-text').textContent = CASE_STUDIES[lastCase];
+  setText('case-text', CASE_STUDIES[lastCase]);
 }
 function showRandomMarketing() {
   lastMkt = pickDifferent(MARKETING_FRAMEWORKS, lastMkt);
   const f = MARKETING_FRAMEWORKS[lastMkt];
-  document.getElementById('marketing-title').textContent = f.title;
-  document.getElementById('marketing-text').textContent = f.text;
+  setText('marketing-title', f.title);
+  setText('marketing-text', f.text);
 }
 function showRandomHr() {
   lastHr = pickDifferent(HR_TOPICS, lastHr);
   const h = HR_TOPICS[lastHr];
-  document.getElementById('hr-title').textContent = h.title;
-  document.getElementById('hr-text').textContent = h.text;
+  setText('hr-title', h.title);
+  setText('hr-text', h.text);
 }
 
 /* =====================================================================
    FLASHCARD QUIZ
-   ---------------------------------------------------------------------
-   Light spaced repetition: a card you miss is pushed back into the
-   queue three positions later, so it returns before the round ends.
-   A card is "mastered" after two correct recalls in a row.
+   Light spaced repetition: a missed card returns 3 places later,
+   at most twice, so the round always ends.
    ===================================================================== */
 const ALL_CARDS = [
   ...MARKETING_FRAMEWORKS.map((c, i) => ({ id: 'M' + i, deck: 'marketing', label: 'Marketing', ...c })),
   ...HR_TOPICS.map((c, i) => ({ id: 'H' + i, deck: 'hr', label: 'HR', ...c }))
 ];
 
-const MAX_REQUEUE = 2;   // a missed card returns at most twice per round
+const MAX_REQUEUE = 2;
 let quizDeck = 'both', quizSize = 6;
-let queue = [], results = {}, currentCard = null, dealt = 0, totalToDeal = 0;
-
-const $ = id => document.getElementById(id);
-const overlay = $('quiz-overlay');
+let queue = [], results = {}, currentCard = null, totalToDeal = 0;
 
 function openQuizSetup() {
-  $('quiz-setup').classList.remove('hidden');
-  $('quiz-play').classList.add('hidden');
-  $('quiz-result').classList.add('hidden');
-  overlay.classList.add('open');
+  show('quiz-setup');
+  hide('quiz-play');
+  hide('quiz-result');
+  const o = el('quiz-overlay'); if (o) o.classList.add('open');
 }
 function closeQuiz() {
-  overlay.classList.remove('open');
+  const o = el('quiz-overlay'); if (o) o.classList.remove('open');
   renderMastery();
   renderHeatmap();
 }
 
-$('btn-quiz-start').addEventListener('click', openQuizSetup);
+on('btn-quiz-start', 'click', openQuizSetup);
+on('btn-quiz-repeat', 'click', openQuizSetup);
 document.querySelectorAll('.btn-quiz-exit').forEach(b => b.addEventListener('click', closeQuiz));
-$('btn-quiz-repeat').addEventListener('click', openQuizSetup);
-overlay.addEventListener('click', e => { if (e.target === overlay) closeQuiz(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.classList.contains('open')) closeQuiz(); });
+
+const overlayEl = el('quiz-overlay');
+if (overlayEl) overlayEl.addEventListener('click', e => { if (e.target === overlayEl) closeQuiz(); });
+document.addEventListener('keydown', e => {
+  const o = el('quiz-overlay');
+  if (e.key === 'Escape' && o && o.classList.contains('open')) closeQuiz();
+});
 
 document.querySelectorAll('.deck-chip').forEach(c => c.addEventListener('click', () => {
   document.querySelectorAll('.deck-chip').forEach(x => x.classList.remove('active'));
@@ -550,60 +562,57 @@ document.querySelectorAll('.size-chip').forEach(c => c.addEventListener('click',
   quizSize = Number(c.dataset.size);
 }));
 
-$('btn-quiz-go').addEventListener('click', startQuiz);
+on('btn-quiz-go', 'click', startQuiz);
 
 function startQuiz() {
   const u = currentUser();
+  if (!u) return;
   let pool = ALL_CARDS.filter(c => quizDeck === 'both' || c.deck === quizDeck);
 
-  // weakest cards first, then shuffle inside each tier
+  // weakest cards first, random inside each tier
   pool = pool
     .map(c => ({ c, score: (u.cardStats[c.id] && u.cardStats[c.id].streak) || 0, r: Math.random() }))
     .sort((a, b) => a.score - b.score || a.r - b.r)
     .map(x => x.c);
 
   const n = quizSize === 0 ? pool.length : Math.min(quizSize, pool.length);
-  // round copies carry a requeue counter, so a card can come back at
-  // most MAX_REQUEUE times and the round always ends
   queue = pool.slice(0, n).map(c => Object.assign({}, c, { rq: 0 }));
-  // shuffle the chosen set so the order still feels fresh
   for (let i = queue.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [queue[i], queue[j]] = [queue[j], queue[i]];
   }
 
   results = {};
-  dealt = 0;
   totalToDeal = n;
-  $('quiz-setup').classList.add('hidden');
-  $('quiz-result').classList.add('hidden');
-  $('quiz-play').classList.remove('hidden');
+  hide('quiz-setup');
+  hide('quiz-result');
+  show('quiz-play');
   nextCard();
 }
 
 function nextCard() {
   if (!queue.length) return finishQuiz();
   currentCard = queue.shift();
-  dealt++;
 
-  $('quiz-deck-tag').textContent = currentCard.label;
-  $('quiz-front').textContent = currentCard.title;
-  $('quiz-answer').textContent = currentCard.text;
-  $('quiz-back').classList.add('hidden');
-  $('quiz-grade').classList.add('hidden');
-  $('quiz-grade').classList.remove('grid');
-  $('btn-reveal').classList.remove('hidden');
+  setText('quiz-deck-tag', currentCard.label);
+  setText('quiz-front', currentCard.title);
+  setText('quiz-answer', currentCard.text);
+  hide('quiz-back');
+  hide('quiz-grade');
+  const g = el('quiz-grade'); if (g) g.classList.remove('grid');
+  show('btn-reveal');
 
   const seen = Object.keys(results).length;
-  $('quiz-counter').textContent = `Card ${seen + 1} · ${totalToDeal} in this round`;
-  $('quiz-bar').style.width = Math.round((seen / totalToDeal) * 100) + '%';
+  setText('quiz-counter', `Card ${seen + 1} · ${totalToDeal} in this round`);
+  const bar = el('quiz-bar');
+  if (bar) bar.style.width = Math.round((seen / totalToDeal) * 100) + '%';
 }
 
-$('btn-reveal').addEventListener('click', () => {
-  $('quiz-back').classList.remove('hidden');
-  $('btn-reveal').classList.add('hidden');
-  $('quiz-grade').classList.remove('hidden');
-  $('quiz-grade').classList.add('grid');
+on('btn-reveal', 'click', () => {
+  show('quiz-back');
+  hide('btn-reveal');
+  show('quiz-grade');
+  const g = el('quiz-grade'); if (g) g.classList.add('grid');
 });
 
 function grade(knew) {
@@ -615,21 +624,18 @@ function grade(knew) {
   u.cardStats[id] = st;
   persist();
 
-  // record the FIRST answer for this card in this round
   if (!(id in results)) results[id] = knew;
 
   if (!knew && currentCard.rq < MAX_REQUEUE) {
-    // push it back so it returns before the round ends
     currentCard.rq++;
-    const pos = Math.min(3, queue.length);
-    queue.splice(pos, 0, currentCard);
+    queue.splice(Math.min(3, queue.length), 0, currentCard);
   }
 
   logActivity(1);
   nextCard();
 }
-$('btn-knew').addEventListener('click', () => grade(true));
-$('btn-again').addEventListener('click', () => grade(false));
+on('btn-knew', 'click', () => grade(true));
+on('btn-again', 'click', () => grade(false));
 
 function finishQuiz() {
   const ids = Object.keys(results);
@@ -637,28 +643,25 @@ function finishQuiz() {
   const total = ids.length;
   const pct = total ? got / total : 0;
 
-  $('quiz-play').classList.add('hidden');
-  $('quiz-result').classList.remove('hidden');
-  $('result-score').textContent = `${got} / ${total}`;
+  hide('quiz-play');
+  show('quiz-result');
+  setText('result-score', `${got} / ${total}`);
 
   let emoji = '📘', line = "Every miss you just found is a mark you won't lose later.";
   if (pct === 1) { emoji = '🏆'; line = 'Clean sweep. These are yours now.'; confetti(); }
   else if (pct >= 0.75) { emoji = '🎯'; line = 'Strong recall. Just a couple of soft spots left.'; }
   else if (pct >= 0.5) { emoji = '📈'; line = 'Halfway solid. Run the same deck again tomorrow.'; }
 
-  $('result-emoji').textContent = emoji;
-  $('result-line').textContent = line;
+  setText('result-emoji', emoji);
+  setText('result-line', line);
 
   const weak = ids.filter(id => !results[id]).map(id => ALL_CARDS.find(c => c.id === id).title);
-  const box = $('result-weak');
-  const list = $('result-weak-list');
-  list.innerHTML = '';
-  if (weak.length) {
+  const list = el('result-weak-list');
+  if (list) {
+    list.innerHTML = '';
     weak.forEach(t => { const li = document.createElement('li'); li.textContent = t; list.appendChild(li); });
-    box.classList.remove('hidden');
-  } else {
-    box.classList.add('hidden');
   }
+  if (weak.length) show('result-weak'); else hide('result-weak');
 
   renderMastery();
   renderHeatmap();
@@ -669,91 +672,43 @@ function renderMastery() {
   if (!u) return;
   const mastered = ALL_CARDS.filter(c => (u.cardStats[c.id] || {}).streak >= 2).length;
   const pct = Math.round((mastered / ALL_CARDS.length) * 100);
-  $('mastery-label').textContent = `${mastered} / ${ALL_CARDS.length} topics`;
-  $('mastery-bar').style.width = pct + '%';
+  setText('mastery-label', `${mastered} / ${ALL_CARDS.length} topics`);
+  const bar = el('mastery-bar');
+  if (bar) bar.style.width = pct + '%';
 }
 
 /* =====================================================================
    HELP DESK
    ===================================================================== */
-document.getElementById('form-helpdesk').addEventListener('submit', (e) => {
+on('form-helpdesk', 'submit', (e) => {
   e.preventDefault();
-  const msg = document.getElementById('helpdesk-msg').value.trim();
+  const box = el('helpdesk-msg');
+  const msg = box ? box.value.trim() : '';
   if (!msg) return;
   const u = currentUser();
   const email = getComputedStyle(document.documentElement)
     .getPropertyValue('--help-desk-email').replace(/["']/g, '').trim();
-  const subject = encodeURIComponent(`Prep Desk suggestion from ${u.name}`);
+  const subject = encodeURIComponent(`Prep Desk suggestion from ${u ? u.name : 'a user'}`);
   const body = encodeURIComponent(`${msg}\n\n— sent from Prep Desk`);
   window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
-  document.getElementById('helpdesk-status').classList.remove('hidden');
-  document.getElementById('helpdesk-msg').value = '';
+  show('helpdesk-status');
+  box.value = '';
 });
 
 /* =====================================================================
-   BACKUP / RESTORE
+   ONE-TIME CLEANUP
+   The app used to register a service worker. If you ever opened the
+   hosted version before, that old worker is STILL installed in the
+   browser and will keep serving stale files. This removes it.
+   Safe to delete this block after a few days.
    ===================================================================== */
-document.getElementById('btn-backup').addEventListener('click', () => {
-  const u = currentUser();
-  const payload = {
-    app: 'prepdesk',
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    username: currentUsername,
-    account: u
-  };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `prepdesk-backup-${currentUsername}-${isoDate()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-  document.getElementById('backup-note').textContent = `Backup saved on ${isoDate()}. Keep it in Drive or email it to yourself.`;
-  showToast('Backup downloaded.');
-});
-
-document.getElementById('btn-restore').addEventListener('click', () => document.getElementById('restore-file').click());
-
-document.getElementById('restore-file').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const data = JSON.parse(reader.result);
-      if (data.app !== 'prepdesk' || !data.account) throw new Error('bad file');
-      const name = data.account.name || data.username;
-      const ok = confirm(
-        `Restore the backup for "${name}"?\n\n` +
-        `This will overwrite the data currently saved for ${currentUsername} in this browser — ` +
-        `streak, quotes, heatmap and flashcard progress.`
-      );
-      if (!ok) return;
-      const pw = users[currentUsername].password; // keep the password you log in with
-      users[currentUsername] = migrate(Object.assign({}, data.account, { password: pw }));
-      persist();
-      showToast('Backup restored.');
-      applyTheme(currentUser().theme);
-      enterDashboard();
-    } catch (err) {
-      showToast("That file doesn't look like a Prep Desk backup.");
-    } finally {
-      e.target.value = '';
-    }
-  };
-  reader.readAsText(file);
-});
-
-/* =====================================================================
-   PWA
-   ===================================================================== */
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => { /* offline mode unavailable */ });
-  });
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations()
+    .then(rs => rs.forEach(r => r.unregister()))
+    .catch(() => {});
+  if (window.caches && caches.keys) {
+    caches.keys().then(ks => ks.forEach(k => caches.delete(k))).catch(() => {});
+  }
 }
 
 /* =====================================================================
@@ -769,6 +724,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     updateStreak();
     enterDashboard();
   } else {
+    clearSession();
     showScreen('screen-auth');
   }
 })();
